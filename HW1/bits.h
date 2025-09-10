@@ -1,5 +1,6 @@
-// file: Q2-MyBitApp/bits.h
-// Author/Date: Yash Patel, 09/09/25
+// file: bits.h
+// Author/Date: Yash Patel (pately@bu.edu), 09/09/25
+// EC535, HW1, Question 1
 
 #ifndef BITS_H
 #define BITS_H

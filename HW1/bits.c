@@ -1,5 +1,6 @@
-// file: Q2-MyBitApp/bits.c
-// Author/Date: Yash Patel, 09/09/25
+// file: bits.c
+// Author/Date: Yash Patel (pately@bu.edu), 09/09/25
+// EC535, HW1, Question 1
 
 #include "stdio.h"
 #include "stdint.h"
@@ -20,7 +21,7 @@ unsigned int BinaryMirror(unsigned int input){
     //printf("input %u\tcurr_LSB %u\toutput %u\n", input, curr_LSB, output);
     input = input >> 1; // shift input over (ie iterate through input number bit-by-bit)
   }
-
+  return output;
 }
 
 // Counts the number of times the pattern '010' appears in the binary representation of the input number
