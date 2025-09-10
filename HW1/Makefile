@@ -14,7 +14,7 @@ main.o: main.c bits.h
 
 # recompile mylist files into executable called mylist
 mylist: mylist.c mylist.h
-	gcc -c mylist.c
+	gcc -c mylist.c -o mylist
 
 clean:
 	rm -f *.o MyBitApp
