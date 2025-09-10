@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Config files and setup fils local to the machine vscode is being run on. 
+.vscode/
+.vscode/launch.json
+.vscode/tasts.json
