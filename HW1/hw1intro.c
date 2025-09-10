@@ -19,8 +19,15 @@ void *myNewThread(void *p)
 {
 	printf("Hello!\n");
 	//Ask user to enter an integer
-	
+	int usr_input;
+	printf("Enter a integer:\n");
+	scanf("%d", &usr_input);
+
 	//print the integer in decimal, binary, and in hexadecimal form
+	printf("The entered number:");
+	printf("\t\tdecimal: %d\n");
+	printf("\t\tBinary: %u\n");
+	printf("\t\tHex: %X\n");
 }
 
 int main() 
