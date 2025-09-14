@@ -77,7 +77,7 @@ int main(int numArgs, char *varArgs[]) {
 
 	// Loop through linked list and print all values into output file
 	node* current = head;
-	fprintf(stderr, "DEBUG: writing list to output file\n");
+	
 	while (current != NULL){
 		// Output file print format:		<flipped_input>		<count of pattern>
 		fprintf(outputFile, "%u\t%u\n", current->flipped, current->count);
