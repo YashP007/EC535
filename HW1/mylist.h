@@ -4,17 +4,17 @@
 
 #ifndef mylist
 #define mylist
+#include <stdint.h>
 
 typedef struct node {
-  unsigned int flipped;
+  uint32_t flipped;
   unsigned int count;
-  char leadingascii;  
+  char ascii[32]; // buffer to hold ASCII string representation of 'flipped' value
   struct node *next;
 } node;
 
 // Updated function prototypes to match implementations in mylist.c
-char getleadingascii(unsigned int);
-node* createBaseNode(unsigned int, unsigned int);
-void appendNode(node*, unsigned int, unsigned int);
+node* createBaseNode(uint32_t, unsigned int);
+void appendNode(node **, uint32_t, unsigned int);
 
 #endif
