@@ -14,7 +14,7 @@ void _printBin(uint32_t); // FOR DEBUG PURPOSES ONLY
 // Testing the L-R bit flip function
 //unsigned int input = 1414551882; //[5]10 --> [0101]2
 
-unsigned int debug_mode = 1; 
+unsigned int debug_mode = 0; 
 
 int main(int numArgs, char *varArgs[]) {
 	if (debug_mode == 1){for (int i = 0; i < numArgs; ++i) {fprintf(stderr, "DEBUG: argv[%d]=%s\n", i, varArgs[i]);}}
