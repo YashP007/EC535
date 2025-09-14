@@ -9,7 +9,7 @@
 #include <inttypes.h> // For PRIu32
 
 // Function Definitions for Functions in this File 
-void printBin(unsigned int); // FOR DEBUG PURPOSES ONLY
+void _printBin(uint32_t); // FOR DEBUG PURPOSES ONLY
 
 // Testing the L-R bit flip function
 //unsigned int input = 1414551882; //[5]10 --> [0101]2
@@ -53,8 +53,8 @@ int main(int numArgs, char *varArgs[]) {
 		unsigned int count_of_pattern = CountSequence(currValue);
 		if (debug_mode==1){
 			fprintf(stderr, "\nDEBUG\n");
-			fprintf(stderr,"INPUT: \t"); printBin(currValue); fprintf(stderr, "\t %"PRIu32"\n", currValue);
-			fprintf(stderr,"FLIPD: \t"); printBin(flipped_input); fprintf(stderr, "\t %"PRIu32"\n", flipped_input);
+			fprintf(stderr,"INPUT: \t"); _printBin(currValue); fprintf(stderr, "\t %"PRIu32"\n", currValue);
+			fprintf(stderr,"FLIPD: \t"); _printBin(flipped_input); fprintf(stderr, "\t %"PRIu32"\n", flipped_input);
 			fprintf(stderr,"COUNT: \t"); fprintf(stderr, "%d\n", count_of_pattern);
 		}
 		// If first value need to create base node
@@ -68,7 +68,7 @@ int main(int numArgs, char *varArgs[]) {
 			continue;
 		} 
 		// if not first value -- Append to linked list using the append function in mylist.c
-		appendNode(head, flipped_input, count_of_pattern);
+		appendNode(&head, flipped_input, count_of_pattern);
 	}
 
 	if (debug_mode==1){
@@ -99,7 +99,7 @@ int main(int numArgs, char *varArgs[]) {
 	return 0; // ie return 0 to indicate program completion succeded. 
 }
 
-void printBin(uint32_t input) {
+void _printBin(uint32_t input) {
     const int nbits = 32;  // explicitly 32 bits for uint32_t
 
     for (int i = nbits - 1; i >= 0; --i) {
