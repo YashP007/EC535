@@ -7,14 +7,14 @@ MyBitApp: bits.o main.o mylist.o
 	gcc -o MyBitApp bits.o main.o mylist.o
 
 bits.o: bits.c bits.h
-	gcc -c bits.c
-
-main.o: main.c bits.h
-	gcc -c main.c
+	gcc -c bits.c -o bits.o
 
 # ensure mylist.o is built and linked
 mylist.o: mylist.c mylist.h
 	gcc -c mylist.c -o mylist.o
+
+main.o: main.c bits.h mylist.h
+	gcc -c main.c -o main.o
 
 clean:
 	rm -f *.o MyBitApp
