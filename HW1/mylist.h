@@ -6,19 +6,15 @@
 #define mylist
 
 typedef struct node {
-  int decimal;
-  unsigned int binary;
-  char ascii[10];
+  unsigned int flipped;
+  unsigned int count;
+  char leadingascii;  
   struct node *next;
 } node;
 
 // Updated function prototypes to match implementations in mylist.c
-unsigned int decimal2binary(unsigned int input);
-void decimal2ascii(unsigned int input, char* output);
-node* createBaseNode(unsigned int input);
-void appendNode(node* head, unsigned int input);
-
-// main entry point
-int main(int);
+char getleadingascii(unsigned int);
+node* createBaseNode(unsigned int, unsigned int);
+void appendNode(node*, unsigned int, unsigned int);
 
 #endif

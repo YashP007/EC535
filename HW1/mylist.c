@@ -7,41 +7,39 @@
 #include <string.h>
 #include "mylist.h"
 
-unsigned int decimal2binary(unsigned int input) {
-  unsigned int result = 0;
-  unsigned int scale = 1;
-  if (input == 0) return 0;
-  while (input > 0) {
-    if (input & 1)
-      result += scale;
-    scale *= 10;
-    input >>= 1;
-  }
-  return result;
+/* This function returns the first charectar of input number (ASCII)*/
+char getleadingascii(unsigned int input){
+    char buf[32];
+    // convert number to decimal ASCII and return the first character
+    // sprintf always NUL-terminates for these small buffers and unsigned ints
+    sprintf(buf, "%u", input);
+    return buf[0]; // for input==0 this returns '0'
 }
 
-void decimal2ascii(unsigned int input, char* output){
-  sprintf(output, "%u", input);
-}
-
-node* createBaseNode(unsigned int input){
+node* createBaseNode(unsigned int flip_val, unsigned int count_val){
     node* newNode = (node*)malloc(sizeof(node));
     if (newNode == NULL) return NULL;
-    newNode->decimal = input;
-    newNode->binary = decimal2binary(input);
-    decimal2ascii(input, newNode->ascii);
+    newNode->flipped = flip_val;
+    newNode->count = count_val;
+    newNode->leadingascii = getleadingascii(flip_val);
     newNode->next = NULL;
     return newNode;
 }
 
-void appendNode(node* head, unsigned int input){
+/* This function appends the inputs to the given linked list in lexigrapghic order using O(n) sorting*/
+void appendNode(node* head, unsigned int flip_val, unsigned int count_val){
   // to make more effient you can call this function with the most recent node you have access to instead of head to 
   // reduce the loop time for this function to get to the end of the linked list
     if (head == NULL) return;
     node* current = head;
+    node* prev = NULL; // initialize to detect head-insert
 
-    // loop through linked list to the end of it, if given head and long linked list this is ineffient
-    while (current->next != NULL) {
+    // Get leading char value to know where to append this node to
+    char leadingascii_val = getleadingascii(flip_val);
+
+    // advance while current leadingascii is less than the new value
+    while (current != NULL && current->leadingascii < leadingascii_val) {
+        prev = current;
         current = current->next;
     }
 
@@ -50,46 +48,27 @@ void appendNode(node* head, unsigned int input){
     if (newNode == NULL) return;
 
     // add in values into this node object
-    newNode->decimal = input;
-    newNode->binary = decimal2binary(input);
-    decimal2ascii(input, newNode->ascii);
-    newNode->next = NULL; // set the pointer to the next value to NULL (ie this node is at the end of the linked list)
-    current->next = newNode; // set the pointer of the previous node to the location of this new one this function all created
-}
+    newNode->flipped = flip_val;
+    newNode->count = count_val;
+    newNode->leadingascii = leadingascii_val;
+    
+    // If inserting before the head, preserve caller's head pointer by moving old head into newNode
+    if (prev == NULL) {
+        // copy old head into newNode
+        newNode->flipped = head->flipped;
+        newNode->count = head->count;
+        newNode->leadingascii = head->leadingascii;
+        newNode->next = head->next;
+        // put new data into head
+        head->flipped = flip_val;
+        head->count = count_val;
+        head->leadingascii = leadingascii_val;
+        head->next = newNode;
+        return;
+    }
 
-int main(int numArgs){
-  // create base node
-  unsigned int values[] = {5, 10, 255, 0, 42};
-  int n = sizeof(values)/sizeof(values[0]);
-
-  // Create the head node
-  node* head = createBaseNode(values[0]);
-  if (head == NULL) {
-    printf("Failed to create head node.\n");
-    return 1;
+    // General insert between prev and current
+    prev->next = newNode;
+    newNode->next = current; // works whether current is NULL (append at end) or not
+    return;
   }
-
-  // Append the rest of the nodes
-  for (int i = 1; i < n; i++) {
-    appendNode(head, values[i]);
-  }
-
-  // Print the list
-  node* current = head;
-  printf("Decimal\tBinary\t\t\t\t\tASCII\n");
-  printf("-------------------------------------------------------------\n");
-  while (current != NULL) {
-    printf("%d\t%u\t\t%s\n", current->decimal, current->binary, current->ascii);
-    current = current->next;
-  }
-
-  // Free the list
-  current = head;
-  while (current != NULL) {
-    node* temp = current;
-    current = current->next;
-    free(temp);
-  }
-
-  return 0;
-}
