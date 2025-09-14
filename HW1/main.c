@@ -6,16 +6,18 @@
 #include "stdlib.h"
 #include "bits.h"
 #include "mylist.h"
+#include <inttypes.h> // For PRIu32
+
+// Function Definitions for Functions in this File 
+void printBin(unsigned int); // FOR DEBUG PURPOSES ONLY
 
 // Testing the L-R bit flip function
 //unsigned int input = 1414551882; //[5]10 --> [0101]2
 
+unsigned int debug_mode = 1; 
+
 int main(int numArgs, char *varArgs[]) {
-	// Debug: print received args
-	fprintf(stderr, "DEBUG: program started. argc=%d\n", numArgs);
-	for (int i = 0; i < numArgs; ++i) {
-		fprintf(stderr, "DEBUG: argv[%d]=%s\n", i, varArgs[i]);
-	}
+	if (debug_mode == 1){for (int i = 0; i < numArgs; ++i) {fprintf(stderr, "DEBUG: argv[%d]=%s\n", i, varArgs[i]);}}
 
 	// Assert that 3 args are provided: program-file, input-file-name, output-file-name
 	if (numArgs != 3){
@@ -26,9 +28,6 @@ int main(int numArgs, char *varArgs[]) {
 	FILE *inputFile  = fopen(varArgs[1], "r");
 	FILE *outputFile = fopen(varArgs[2], "w"); // will re-write any exisisting content in this file
 
-	// Debug: report fopen results
-	fprintf(stderr, "DEBUG: fopen inputFile=%p outputFile=%p\n", (void*)inputFile, (void*)outputFile);
-
 	// Check that the input file exists
 	if (inputFile== NULL){
 		fprintf(stderr, "ERROR: The input file does not exist or cannot be opened: %s\n", varArgs[1]);
@@ -37,7 +36,8 @@ int main(int numArgs, char *varArgs[]) {
 
 	// Check that the output file was opened
 	if (outputFile== NULL){
-		fprintf(stderr, "ERROR: Could not open output file for writing: %s\n", varArgs[2]);
+		if (debug_mode == 1)
+			fprintf(stderr, "ERROR: Could not open output file for writing: %s\n", varArgs[2]);
 		fclose(inputFile);
 		return 1;
 	}
@@ -45,22 +45,22 @@ int main(int numArgs, char *varArgs[]) {
 	// Generate base node for linked list
 	node* head = NULL; // initialize to avoid undefined behavior
 
-	unsigned int currValue;
+	uint32_t  currValue;
 	// Read single line (i.e. one value) in from input file
 	while (fscanf(inputFile, "%u", & currValue) == 1){
-		fprintf(stderr, "DEBUG: read value=%u\n", currValue);
-
 		// use bits.c to get the fliiped input and count values. 
-		unsigned int flipped_input = BinaryMirror(currValue);
+		uint32_t flipped_input = BinaryMirror(currValue);
 		unsigned int count_of_pattern = CountSequence(currValue);
-		fprintf(stderr, "DEBUG: flipped=%u count=%u\n", flipped_input, count_of_pattern);
-
+		if (debug_mode==1){
+			fprintf(stderr, "\nDEBUG\n");
+			fprintf(stderr,"INPUT: \t"); printBin(currValue); fprintf(stderr, "\t %"PRIu32"\n", currValue);
+			fprintf(stderr,"FLIPD: \t"); printBin(flipped_input); fprintf(stderr, "\t %"PRIu32"\n", flipped_input);
+			fprintf(stderr,"COUNT: \t"); fprintf(stderr, "%d\n", count_of_pattern);
+		}
 		// If first value need to create base node
 		if (head == NULL){
-			fprintf(stderr, "DEBUG: creating base node\n");
 			head = createBaseNode(flipped_input, count_of_pattern);
 			if (head == NULL) {
-				fprintf(stderr, "ERROR: createBaseNode returned NULL\n");
 				fclose(inputFile);
 				fclose(outputFile);
 				return 1;
@@ -68,8 +68,11 @@ int main(int numArgs, char *varArgs[]) {
 			continue;
 		} 
 		// if not first value -- Append to linked list using the append function in mylist.c
-		fprintf(stderr, "DEBUG: appending node\n");
 		appendNode(head, flipped_input, count_of_pattern);
+	}
+
+	if (debug_mode==1){
+		fprintf(stderr, "\nReading in Values Complete, now printing values into output file:\n\n");
 	}
 
 	// Loop through linked list and print all values into output file
@@ -78,12 +81,12 @@ int main(int numArgs, char *varArgs[]) {
 	while (current != NULL){
 		// Output file print format:		<flipped_input>		<count of pattern>
 		fprintf(outputFile, "%u\t%u\n", current->flipped, current->count);
-		fprintf(stderr, "DEBUG: wrote -> flipped=%u count=%u\n", current->flipped, current->count);
+		if (debug_mode==1)
+			fprintf(stderr, "DEBUG: wrote -> flipped=%u \t count=%u\n", current->flipped, current->count);
 		current = current -> next;
   	}	
 
 	// Free the list once done using linked list
-	fprintf(stderr, "DEBUG: freeing list\n");
   	current = head;
   	while (current != NULL) {
     	node* temp = current;
@@ -93,8 +96,19 @@ int main(int numArgs, char *varArgs[]) {
 
 	fclose(inputFile);
 	fclose(outputFile);
-	fprintf(stderr, "DEBUG: program completed successfully\n");
 	return 0; // ie return 0 to indicate program completion succeded. 
 }
 
-//## need to add in file reading and writing into main.c
+void printBin(uint32_t input) {
+    const int nbits = 32;  // explicitly 32 bits for uint32_t
+
+    for (int i = nbits - 1; i >= 0; --i) {
+        putchar('0' + ((input >> i) & 1U));
+
+        // Add underscore after every 4 bits, except at the very end
+        if (i % 4 == 0 && i != 0) {
+            putchar('_');
+        }
+    }
+    putchar('\n');
+}
