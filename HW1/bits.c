@@ -6,16 +6,16 @@
 #include "stdint.h"
 
 // Flips binary mirror of input numbers
-unsigned int BinaryMirror(unsigned int input){
-  unsigned int output = 0;
+uint32_t BinaryMirror(uint32_t input){
+  uint32_t output = 0;
 
-  while(input > 0){
+  for (int i = 0; i < 32; i++) {
     // 1. Extract the least significant bit value
     // 2. Invert this LSB and then add it to the output value
     // 3. Shift the output to the right (this is the thing that actually flips it L-R)
     unsigned int curr_LSB = input & 0b1;
 
-    output = (output << 1) | curr_LSB;  // shift then append bit
+    output = (output << 1) | (input & 1U);  // Append current LSB to output
 
     // Print out values for debugging and development (commented out for final submission)
     //printf("input %u\tcurr_LSB %u\toutput %u\n", input, curr_LSB, output);
@@ -25,7 +25,7 @@ unsigned int BinaryMirror(unsigned int input){
 }
 
 // Counts the number of times the pattern '010' appears in the binary representation of the input number
-unsigned int CountSequence(unsigned int input){
+unsigned int CountSequence(uint32_t input){
   unsigned int code = 0b010; // Looking to count number of 0b010 == [2]10 sequences
   unsigned int sum = 0;
   

@@ -4,11 +4,12 @@
 
 #ifndef BITS_H
 #define BITS_H
+#include <stdint.h>
 
 // Flips binary mirror of input numbers
-unsigned int BinaryMirror(unsigned int);
+uint32_t BinaryMirror(uint32_t);
 
 // Counts the number of times the pattern '010' appears in the binary representation of the input number
-unsigned int CountSequence(unsigned int);
+unsigned int CountSequence(uint32_t);
 
 #endif
