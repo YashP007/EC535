@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab1 2025.md</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__left">
+    <div class="stackedit__toc">
+      
+<ul>
+<li><a href="#ec535-fall-2025-lab-1">EC535 Fall 2025: Lab #1</a>
+<ul>
+<li><a href="#pre-lab-preparation">Pre-lab Preparation</a></li>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#step-by-step-instructions">Step-by-step Instructions</a></li>
+<li><a href="#tasks-to-complete">Tasks to Complete</a></li>
+<li><a href="#submission">Submission</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+  </div>
+  <div class="stackedit__right">
+    <div class="stackedit__html">
+      <h1 id="ec535-fall-2025-lab-1">EC535 Fall 2025: Lab #1</h1>
+<p><strong>Assigned:</strong> Wednesday, Sep. 17, 2025<br>
+<strong>Last Revised:</strong> Tuesday, Sep. 16, 2025<br>
+<strong>Due:</strong> Tuesday, Sep. 23, 2025 @ 10:00pm EST</p>
+<h2 id="pre-lab-preparation">Pre-lab Preparation</h2>
+<p>Before starting the lab, you must understand the following concepts:</p>
+<ul>
+<li>Boot loader: <a href="http://en.wikipedia.org/wiki/Boot_loader">en.wikipedia.org/wiki/Boot_loader</a></li>
+<li>Kernel Image (a.k.a. “vmlinux” or “zImage” or “uImage”): <a href="https://en.wikipedia.org/wiki/Vmlinux">en.wikipedia.org/wiki/Vmlinux</a>
+<ul>
+<li>Image vs zImage vs uImage: <a href="https://stackoverflow.com/a/22338835">stackoverflow.com/a/22338835</a></li>
+</ul>
+</li>
+<li>Linux filesystems: <a href="https://perma.cc/SRR6-AXGK">opensource.com/life/16/10/introduction-linux-filesystems</a>
+<ul>
+<li>Specifically, the ext4 filesystem: <a href="https://en.wikipedia.org/wiki/Ext4">en.wikipedia.org/wiki/Ext4</a></li>
+</ul>
+</li>
+<li>QEMU emulator: <a href="https://en.wikipedia.org/wiki/QEMU">en.wikipedia.org/wiki/QEMU</a></li>
+</ul>
+<p>Once you feel prepared, goto <strong>GradeScope</strong> and complete the pre-lab mini quiz.</p>
+<h2 id="introduction">Introduction</h2>
+<p>The labs are based on the <em>BeagleBone Black Rev. C</em> single-board computer. Technical specifications can be found under the “Additional Helpful Resources” section below, but in summary, its computational power matches that of many early-2010s smartphones. Unlike most smartphones, the BeagleBone can run a variety of operating systems, including Windows CE, Android, MINIX, and Linux. In this course, we will use Linux exclusively.</p>
+<p>Technically, Linux is not a single operating system. It’s a family of operating systems (a.k.a. <em>distributions</em>) that bundle the Linux kernel with a suite of software and drivers. Linux runs on <a href="https://perma.cc/NDB7-J8B6">many</a>, <a href="https://perma.cc/GC44-8NYK"><em>many</em></a> different devices, and in this lab, you’ll create your own <a href="http://www.linuxfromscratch.org"><em>Linux from Scratch</em></a>-like distribution of Linux for ARMv7 devices like the BeagleBone. You’ll to learn how to configure and build a Linux kernel, a root filesystem, and a <em>BusyBox</em> shell. You’ll also learn the basics of the Linux boot sequence and how to use <em>cron</em>, the Unix job scheduler. Finally, you’ll learn how to run your Linux distribution in <em>QEMU</em>, a processor emulator.</p>
+<h3 id="formatting-note">Formatting Note</h3>
+<p>We’ll be making heavy use of the shell (a.k.a. terminal) throughout this course. When we provide commands for you to run in the shell, they’ll look like this:</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> ~/example
+<span class="token function">tar</span> --warning<span class="token operator">=</span>decompress-program -x -f archive.Z
+<span class="token function">rm</span> -rf archive.Z
+</code></pre>
+<p>Occasionally, we may also give you shorter commands or paths inline, like <code>echo $HOME</code> or <code>/var/www/html</code>. In many cases, you’ll have to modify the commands provided by filling in certain values. Those values will typically be shown in ALL CAPS, like this:</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">ssh</span> USERNAME@127.0.0.1:PORT
+</code></pre>
+<p>If any formatting is ever unclear, please let an instructor or TA know in-class or via Piazza.</p>
+<h3 id="additional-helpful-resources">Additional Helpful Resources</h3>
+<ul>
+<li>Official Documentation: <a href="https://beagleboard.github.io/bone101/Support/bone101/">beagleboard.org/Support/bone101</a></li>
+<li>System Reference Manual: <a href="https://cdn-shop.adafruit.com/datasheets/BBB_SRM.pdf">cdn-shop.adafruit.com/datasheets/BBB_SRM.pdf</a></li>
+<li>Product Overview: <a href="https://beagleboard.org/black">beagleboard.org/black</a></li>
+<li>Community Wiki Documentation: <a href="https://elinux.org/Beagleboard:BeagleBoneBlack">elinux.org/Beagleboard:BeagleBoneBlack</a></li>
+</ul>
+<h2 id="step-by-step-instructions">Step-by-step Instructions</h2>
+<p><mark><strong>Important</strong></mark>: These instructions have only been tested on the lab machines in PHO 305/307 (hostnames starting with <code>signals</code> or <code>vlsi</code>). If you are logging-in remotely, make sure you are either connected to a BU network, or use BU VPN to be able to connect to the lab machines. See <em>Blackboard Content &gt; Lectures &gt; Lecture 3</em> for more details.</p>
+<h3 id="set-up-your-environment">0. Set up your environment</h3>
+<p>All of the lab tools are located in the <code>/ad/eng/courses/ec/ec535/</code> directory. To set up your environment, open a new terminal window and run the following command.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">source</span> /ad/eng/courses/ec/ec535/bashrc_ec535
+</code></pre>
+<p><em>Optional: To save time, you can configure your shell to automatically run this command whenever you log in by adding the command above to the end of your <code>~/.bashrc</code> file (create it if it doesn’t already exist).</em></p>
+<p>Check if the environmental variable <code>$EC535</code> is set correctly by running <code>echo $EC535</code>. This command should print the path to the EC535 directory.</p>
+<p>Now create a workspace directory. You may name it and locate it whatever/wherever you’d like<sup class="footnote-ref"><a href="#fn1" id="fnref1">1</a></sup>. Also create the <code>rootfs</code> directory which you’ll use as a base for your root disk image.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">export</span> WORKSPACE<span class="token operator">=</span><span class="token variable">$HOME</span>/EC535/lab1 <span class="token comment"># Feel free to edit as you see fit</span>
+<span class="token function">mkdir</span> -p <span class="token variable">$WORKSPACE</span>/rootfs
+</code></pre>
+<p><em>Note: You’ll need to run the <code>export</code> command above every time you open a new shell, unless you add it to your <code>~/.bashrc</code>.</em></p>
+<p>Finally, this course deals with a lot of large files, and commands can fail in cryptic ways if you start getting close to the 10GB limit that BU IT has placed on students’ home directories. You can check how much space you’ve used using the disk usage (<code>du</code>) utility.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">du</span> -hD --summarize <span class="token variable">$HOME</span>
+</code></pre>
+<p>If that command returns 7GB or more, you may not have enough space to complete the labs, so you may need to clean out your home folder. If you need some help figuring out what to delete, try running the <code>large-files</code> command to see the largest files in your home directory. Alternatively, you may create your workspace for this lab in a temporary area, but please read Footnote 1 before trying this<sup class="footnote-ref"><a href="#fn1" id="fnref1:1">1</a></sup>.</p>
+<h3 id="build-the-linux-kernel">1. Build the Linux kernel</h3>
+<p>The Linux kernel is just like any other C program you’ve worked with: it has a bunch of source (.c) and header (.h) files that will be compiled into one binary (or several binaries) with the help of GCC and a Makefile.</p>
+<p>Start by extracting a copy of the official BeagleBone distribution of the Linux kernel source tree to your workspace.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">tar</span> xzf <span class="token variable">$EC535</span>/bbb/linux-4.19.82-ti-rt-r33.tar.gz
+<span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/linux-4.19.82-ti-rt-r33
+</code></pre>
+<p><em>Note: The <code>tar</code> command may take 5-10 minutes to complete, and no output is produced by default. If you’d like to track its progress, add the <code>-v</code> flag.</em></p>
+<p>The Linux kernel can be finely-tuned to suit specific hardware platforms or usecases. Load the BeagleBone default configuration as a starting point using the <code>bb.org_defconfig</code> argument to <code>make</code>, and then use the <code>patch</code> tool to apply a patch that will allow QEMU to boot your kernel and disable some unnecessary modules to reduce compilation time. Finally, use the <code>menuconfig</code> argument to perform your own customizations.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> ARCH<span class="token operator">=</span>arm CROSS_COMPILE<span class="token operator">=</span>arm-linux-gnueabihf- bb.org_defconfig
+patch <span class="token operator">&lt;</span> <span class="token variable">$EC535</span>/bbb/lab1_defconfig.patch
+<span class="token function">make</span> ARCH<span class="token operator">=</span>arm CROSS_COMPILE<span class="token operator">=</span>arm-linux-gnueabihf- menuconfig
+</code></pre>
+<p>Read the navigation instructions at the top of the screen carefully, and then browse through the menus and disable/enable features as you wish<sup class="footnote-ref"><a href="#fn2" id="fnref2">2</a></sup>. You will encounter three types of settings: <code>[*]</code>, <code>[M]</code>, and <code>[ ]</code>. <code>[*]</code> means the feature will be compiled into the kernel directly. <code>[M]</code> means the feature will be compiled into a <em>kernel module</em>, not into the kernel itself, and loaded at runtime. <code>[ ]</code> (empty) means you wish to skip compiling that feature entirely.</p>
+<p>Be sure to save to <code>.config</code> before exiting. After you’re done configuring, you can start the build process for the kernel and its modules. This will take a <em>very long</em> time, so we’ll tell the compiler to build many things at once using the <code>-j</code> flag. Feel free to grab a cup of tea while you wait, but you may also wish to start working on <em>Step 2. Build a BusyBox shell</em> in a separate terminal window (don’t forget to re-setup your environmental variables!).</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> ARCH<span class="token operator">=</span>arm CROSS_COMPILE<span class="token operator">=</span>arm-linux-gnueabihf- \
+  LOADADDR<span class="token operator">=</span>0x80000000 -j4 uImage modules
+</code></pre>
+<p><em>Notes: (a.) The two lines above are all one command. (b.) You can change the number after <code>-j</code> to vary how many compilation tasks occur concurrently; experiment to see what value is fastest. (c.) If compilation fails, you may have enabled/disabled an unsupported/required feature. (d.) You may pause compilation by pressing <code>Ctrl-c</code> and resume later by running the same command.</em></p>
+<p>After compilation completes, you’ll find the resulting kernel images (<code>Image</code>, <code>zImage</code>, and <code>uImage</code>) under <code>$WORKSPACE/linux-4.19.82-ti-rt-r33/arch/arm/boot/</code>.  The final step is to install the modules you just built into your workspace’s <code>rootfs</code> directory using the <code>modules_install</code> argument (which, unfortunately, also takes a long time).</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> ARCH<span class="token operator">=</span>arm CROSS_COMPILE<span class="token operator">=</span>arm-linux-gnueabihf- \
+  INSTALL_MOD_PATH<span class="token operator">=</span><span class="token variable">$WORKSPACE</span>/rootfs -j4 modules_install
+</code></pre>
+<p>Congratulations, you built a kernel! As a reminder, here’s where to find the results of your work:</p>
+<ul>
+<li>Build Configuration: <code>$WORKSPACE/linux-4.19.82-ti-rt-r33/.config</code></li>
+<li>Kernel zImage: <code>$WORKSPACE/linux-4.19.82-ti-rt-r33/arch/arm/boot/zImage</code></li>
+<li>Built Modules: <code>$WORKSPACE/rootfs/lib/modules</code></li>
+</ul>
+<h3 id="build-a-busybox-shell">2. Build a BusyBox shell</h3>
+<p>While technically you’re able to boot your BeagleBone without a shell, it wouldn’t be very useful. You could install the Bash shell, but it’s quite large, and you’d have to manually install many basic Linux utilities (<code>dd</code>, <code>ps</code>, <code>cron</code>, etc.) separately. That’s why many embedded systems use the <a href="https://www.busybox.net/">BusyBox</a> shell. From the BusyBox website:</p>
+<blockquote>
+<p>BusyBox combines tiny versions of many common UNIX utilities into a single small executable. It provides replacements for most of the utilities you usually find in GNU fileutils, shellutils, etc. The utilities in BusyBox generally have fewer options than their full-featured GNU cousins; however, the options that are included provide the expected functionality and behave very much like their GNU counterparts.</p>
+</blockquote>
+<p>First, extract a copy of the BusyBox source tree into your workspace.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">tar</span> xjf <span class="token variable">$EC535</span>/bbb/busybox-1.31.1.tar.bz2
+<span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/busybox-1.31.1
+</code></pre>
+<p>Like the kernel, BusyBox has to be configured before compilation. Load the default configuration using the <code>defconfig</code> argument, then open the configuration menu with the <code>menuconfig</code> argument.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> defconfig
+<span class="token function">make</span> menuconfig
+</code></pre>
+<p>Read the navigation instructions at the top of the screen carefully, and then poke around the settings and decide which utilities you’d like to include.<sup class="footnote-ref"><a href="#fn2" id="fnref2:1">2</a></sup> At minimum, you’ll need to set/enable the following:</p>
+<ol>
+<li>Settings &gt; Build Options &gt; Build static binary (no shared libs)</li>
+<li>Settings &gt; Build Options &gt; Cross compiler prefix &gt; Enter <code>arm-linux-gnueabihf-</code></li>
+<li>Settings &gt; Installation Options &gt; Destination path for ‘make install’ &gt; Enter <code>../rootfs</code></li>
+</ol>
+<p>Save and exit the configuration menu when you’re done. Then, start the compilation process. Thankfully, this shouldn’t take as long as kernel compilation.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> -j4
+</code></pre>
+<p>Finally, install BusyBox into your <code>rootfs</code> using:</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">make</span> <span class="token function">install</span>
+</code></pre>
+<p>Double-check that BusyBox was installed correctly by browsing <code>$WORKSPACE/rootfs/bin</code>. You’ll see a bunch of symbolic links (a.k.a. “symlinks,” represented in <code>ls -l</code>'s output as <code>link_name -&gt; link_target</code>) and one actual binary (<code>busybox</code>).</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/rootfs/bin
+<span class="token function">ls</span> -l
+<span class="token function">file</span> busybox
+</code></pre>
+<p>You should see something like <code>busybox: ELF 32-bit LSB executable, ARM, version 1 (GNU/Linux), statically linked, for GNU/Linux 3.2.0, BuildID[sha1]=..., stripped</code> as the output of <code>file</code>.</p>
+<h3 id="prepare-the-root-filesystem-rootfs">3. Prepare the root filesystem (rootfs)</h3>
+<p>Throughout the lab, you’ve been adding files to your workspace’s <code>rootfs</code> directory. Pretty soon, you’ll load the contents of that directory into a bootable disk image, which will become your system’s root filesystem.</p>
+<p>Before you can do that, however, you’ll need to create a few directories inside <code>rootfs</code> that the kernel and most Linux applications expect to exist.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/rootfs
+<span class="token function">mkdir</span> -p etc dev proc tmp sys root
+</code></pre>
+<p>You’ll also need to create a basic <code>inittab</code>. Later in this lab, you’ll want to customize this according to the instructions on the <a href="https://git.busybox.net/busybox/tree/examples/inittab">BusyBox website</a>. For now, just open <code>$WORKSPACE/rootfs/etc/inittab</code> in your favorite editor and add the following text:</p>
+<pre><code>::sysinit:/bin/mount -t proc proc /proc
+::sysinit:/bin/mount -t sysfs sysfs /sys
+::sysinit:/bin/mount -o remount,rw /
+::sysinit:/bin/hostname -F /etc/hostname
+::respawn:/sbin/getty -L ttyAMA0 115200 vt100
+::shutdown:/bin/umount -a -r
+</code></pre>
+<p>You’ll also need to create a <code>root</code> user and group. We won’t add a password for now.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/rootfs
+<span class="token keyword">echo</span> <span class="token string">"root:x:0:0:root:/root:/bin/sh"</span> <span class="token operator">&gt;</span> etc/passwd
+<span class="token keyword">echo</span> <span class="token string">"root::10933:0:99999:7:::"</span> <span class="token operator">&gt;</span> etc/shadow
+<span class="token keyword">echo</span> <span class="token string">"root:x:0:"</span> <span class="token operator">&gt;</span> etc/group
+</code></pre>
+<p>You must also create a basic system profile, which configures your BusyBox shell upon boot (similarly to BASH’s <code>.bashrc</code>). Open <code>$WORKSPACE/rootfs/etc/profile</code> in your favorite editor and add the following text:</p>
+<pre><code>export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+if [ "$PS1" ]; then
+    export PS1='# '
+    export USER=root
+    export LOGNAME=$USER
+    export HOSTNAME=`cat /etc/hostname`
+    export HISTSIZE=100
+    export HISTFILESIZE=100
+    export PAGER='/bin/more '
+fi;
+</code></pre>
+<p>Finally, you’ll need to set the hostname of your system. Feel free to use whatever name you’d like, but please make sure it includes your BU username (the <code>$USER</code> variable is a “builtin” that gets automatically set to your BU username).</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>/rootfs
+<span class="token keyword">echo</span> <span class="token string">"<span class="token variable">$USER</span>-beaglebone"</span> <span class="token operator">&gt;</span> etc/hostname
+</code></pre>
+<h3 id="create-the-root-disk-image">4. Create the root disk image</h3>
+<p><strong><mark>Important: You must finish Steps 1-3 <em>COMPLETELY</em> before starting this step.</mark></strong></p>
+<p>Now you’ll take the root filesystem you just populated and copy it into a disk image. For this lab, you’ll just use this image to boot your system in QEMU. In future labs, you’ll copy it onto an SD card and use it to boot your BeagleBone.</p>
+<p>First, create an empty (i.e., filled with zeros) file using <code>dd</code> that’s big enough to fit your rootfs (we’ll just make it 128MB large for now) and format it as ext4 using <code>mkfs</code>.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">dd</span> if<span class="token operator">=</span>/dev/zero of<span class="token operator">=</span>rootfs.img bs<span class="token operator">=</span>1M count<span class="token operator">=</span>128
+mkfs.ext4 -L rootfs rootfs.img <span class="token comment"># Answer 'y' if asked to proceed</span>
+</code></pre>
+<p>Then mount the blank disk image onto a temporary mountpoint using <code>guestmount</code>, copy in all the files from your <code>rootfs</code> directory, and unmount it using <code>guestunmount</code>.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">mkdir</span> -p /tmp/<span class="token variable">$USER</span>-mnt
+guestmount -a rootfs.img -m /dev/sda /tmp/<span class="token variable">$USER</span>-mnt
+<span class="token function">cp</span> -a --no-preserve<span class="token operator">=</span>ownership <span class="token variable">$WORKSPACE</span>/rootfs/* /tmp/<span class="token variable">$USER</span>-mnt/
+guestunmount /tmp/<span class="token variable">$USER</span>-mnt/
+</code></pre>
+<p>You’ll find your freshly-made disk image at <code>$WORKSPACE/rootfs.img</code>. Confirm that the files made it into the disk image using the <code>virt-ls</code> tool.</p>
+<pre class=" language-bash"><code class="prism  language-bash">virt-ls -la rootfs.img -m /dev/sda /
+</code></pre>
+<h3 id="boot-your-system-with-qemu">5. Boot your system with QEMU</h3>
+<p>It’s now time to see the fruits of your labor by booting your system in the QEMU emulator. QEMU emulates many ARM-based computers, but unfortunately the BeagleBone Black isn’t one of them. Instead, we’ll tell QEMU to emulate a generic ARMv7 “virt” machine, which is close enough to the BeagleBone for the purposes of these labs.</p>
+<p>First, make a symbolic link (symlink) in your workspace to your kernel’s <code>zImage</code>. This is mostly so you don’t have to type out the entire path to the kernel every time you launch QEMU.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">ln</span> -s linux-4.19.82-ti-rt-r33/arch/arm/boot/zImage ./
+<span class="token function">file</span> zImage <span class="token comment"># Make sure this doesn't print "broken symbolic link"</span>
+</code></pre>
+<p>Launch an ARM-based QEMU virtual machine with 512MB of RAM and your <code>rootfs.img</code> acting as a virtual hard drive using this command:</p>
+<pre class=" language-bash"><code class="prism  language-bash">qemu-system-arm -M virt -m 512 -kernel zImage -nographic \
+  -drive file<span class="token operator">=</span>rootfs.img,if<span class="token operator">=</span>none,format<span class="token operator">=</span>raw,id<span class="token operator">=</span>rfs \
+  -device virtio-blk-device,drive<span class="token operator">=</span>rfs \
+  -append <span class="token string">"earlyprintk=serial root=/dev/vda"</span>
+</code></pre>
+<p>You’ll immediately start seeing your system boot, and if all goes well, you’ll be presented with a log-in prompt. Enter <code>root</code> as the username and press <code>Enter</code> (if prompted for a password, leave it blank). Once you see a prompt (<code>#</code>), feel free to explore your system using the standard Unix tools (<code>cd</code>, <code>ls</code>, etc.). When you’re done, shutdown your virtual machine using the <code>poweroff</code> command. Alternatively, you may forcibly quit QEMU by pressing <code>Ctrl-a</code> and then <code>x</code>.</p>
+<p>If you instead get a blank screen, kernel panic, or other error when booting your system, you may have disabled a required kernel feature/module. Go back to <em>Step 1. Build the Linux kernel</em> and restart from the <code>cd $WORKSPACE/linux-4.19.82-ti-rt-r33</code> command. You’ll also need to recreate your rootfs image if you add/remove any kernel modules.</p>
+<p>QEMU can do a lot more than just emulate a computer and virtual hard drive. Run <code>qemu-system-arm -h</code> to see all available options. Some options may improve performance or enable additional functionality like network access, sound, or Bluetooth.</p>
+<h2 id="tasks-to-complete">Tasks to Complete</h2>
+<p>After following the instructions above and confirming your system boots properly in QEMU, please complete the following tasks. Tasks 1, 2, and 3 are worth 85% of the total points for this lab. The remaining 15% will depend on how small you can make your kernel image and rootfs in Task 4. <strong>We strongly recommend completing Tasks 1-3 before attempting Task 4.</strong></p>
+<ol>
+<li>
+<p>Your system should print the banner found at <code>$EC535/bbb/banner.ascii</code> when booting up. You should see the penguin picture while booting when you complete this task successfully. Note that the banner should appear <em>before</em> the login prompt.</p>
+</li>
+<li>
+<p>When booting up, automatically start a <code>cron</code> job<sup class="footnote-ref"><a href="#fn3" id="fnref3">3</a></sup> that prints the following message to the screen once every 10 seconds: <code>Welcome to EC535 Fall 2025! Current time and date: &lt;ISO-8601 compliant date and time&gt;</code>. You can obtain the date and time using the <code>date</code> command, but be sure you configure <code>date</code> to output an <a href="https://en.wikipedia.org/wiki/ISO_8601">ISO-8601</a> compliant date/time string, e.g. <code>2020-01-27T19:04:55+0000</code>.</p>
+</li>
+<li>
+<p>Write a C program that prints all the letters in the English alphabet (ABC…XYZ), <strong>cross-compile</strong> it, and place the resulting binary (name it <code>letters</code>) under the <code>/root</code> folder within your rootfs. You should be able to run the program during emulation. Optimize and strip your binary to make it small (run <code>arm-linux-gnueabihf-strip -h</code> for more information). Make sure you use the <code>arm-linux-gnueabihf-gcc</code> cross-compiler!</p>
+</li>
+<li>
+<p>Build a <strong>minimum rootfs image and a minimum kernel image</strong>. You should maintain the basic kernel functionalities (traversing folders, listing directory contents, creating files, etc.) while making your <code>rootfs.img</code><sup class="footnote-ref"><a href="#fn4" id="fnref4">4</a></sup> and kernel <code>zImage</code> as small as possible. You may remove as many modules and utilities as you’d like, as long as your system still boots in QEMU properly and can run the following commands: <code>ps</code>, <code>pwd</code>, <code>ls</code>, <code>cd</code>, <code>cat</code>, <code>more</code>, <code>less</code>, <code>echo</code>, <code>cp</code>, <code>rm</code>, <code>mv</code>, <code>mkdir</code>, and <code>rmdir</code>. Your system must also display the penguin from Task 1 upon boot-up, run the <code>cron</code> job from Task 2, and be able to run the <code>letters</code> program from Task 3.</p>
+</li>
+</ol>
+<h2 id="submission">Submission</h2>
+<p>Create a folder named <code>USERNAME_lab1</code>, replacing <code>USERNAME</code> with your BU Kerberos username. Place copies of the following items into that folder, taking care to copy actual files and NOT symbolic links (the <code>file</code> command can help you check this):</p>
+<ol>
+<li>Your root filesystem image (<code>rootfs.img</code>), <strong>NOT your <code>rootfs/</code> directory</strong></li>
+<li>Your bootable kernel image (<code>zImage</code>)</li>
+<li>Your kernel configuration file (<code>.config</code>)</li>
+<li>A <code>README</code> containing your full name, BU email, and a <strong>brief</strong> description of the changes you made to minimize your system in Task 4.</li>
+</ol>
+<p><em>Note: Your <code>zImage</code> and <code>rootfs.img</code> must be bootable in QEMU using the command given in “Step 5. Boot your system with QEMU” in order to receive a grade.</em></p>
+<p>Create a GZIP’d TAR archive (learn how to use <code>tar</code> and <code>gzip</code>) named <code>USERNAME_lab1.tar.gz</code> containing <em>only</em> the <code>USERNAME_lab1</code> folder. Submit that single archive via Gradescope (detailed instructions TBA). You may submit multiple times; we will only grade your latest submission.</p>
+<p><strong>Failure to adhere to these submission guidelines <em>will</em> result in deduction of points from your lab grade.</strong></p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>You can even create your workspace in the <code>/tmp</code> directory, but note that <code>/tmp</code> is not backed up and may not be accessible remotely via eng-grid. The safest place will always be your home directory (<code>/home/USERNAME</code>). <mark><strong>Neither the instructor nor the TAs nor ENG-IT are responsible for lost files.</strong></mark> <a href="#fnref1" class="footnote-backref">↩︎</a> <a href="#fnref1:1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn2" class="footnote-item"><p>Remember: the <code>&lt;Help&gt;</code> button and Google are your friends. <a href="#fnref2" class="footnote-backref">↩︎</a> <a href="#fnref2:1" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn3" class="footnote-item"><p>Note that the busybox version of <code>cron</code> is slightly different from the standard Unix <code>cron</code>. For a general introduction to Unix <code>cron</code>, see <a href="http://www.unixgeeks.org/security/newbie/unix/cron-1.html">unixgeeks.org/security/newbie/unix/cron-1.html</a> and/or <a href="https://en.wikipedia.org/wiki/Cron">en.wikipedia.org/wiki/Cron</a> <a href="#fnref3" class="footnote-backref">↩︎</a></p>
+</li>
+<li id="fn4" class="footnote-item"><p>Recall that in <em>Step 4. Create the root disk image</em>, you fixed the size of your <code>rootfs.img</code> to 128MB using the <code>dd</code> command. How could you change that command to make a smaller blank disk image, and how small could you make it while still having enough room to <code>cp</code> in the contents of your <code>$WORKSPACE/rootfs</code>? You might also find the <code>resize2fs</code> utility helpful. <a href="#fnref4" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+    </div>
+  </div>
+</body>
+
+</html>
