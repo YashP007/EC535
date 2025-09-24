@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!-- saved from url=(0078)https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab2.md</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body class="stackedit" data-new-gr-c-s-check-loaded="14.1254.0" data-gr-ext-installed="">
+  <div class="stackedit__left">
+    <div class="stackedit__toc">
+      
+<ul>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#ec535-fall-2025-lab-2">EC535 Fall 2025: Lab #2</a>
+<ul>
+<li></li>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#pre-lab-preparation">Pre-lab Preparation</a></li>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#introduction">Introduction</a></li>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#specifications">Specifications</a></li>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#getting-started">Getting Started</a></li>
+<li><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#requirements">Requirements</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+  </div>
+  <div class="stackedit__right">
+    <div class="stackedit__html">
+      <h1 id="ec535-fall-2025-lab-2">EC535 Fall 2025: Lab #2</h1>
+<p><strong>Assigned:</strong> Wednesday, Sep. 24, 2025<br>
+<strong>Last Revised:</strong> Tuesday, Sep. 23, 2025<br>
+<strong>Due:</strong> Friday, Oct. 3, 2025 @ 6:00pm EST</p>
+<h2 id="pre-lab-preparation">Pre-lab Preparation</h2>
+<p>Before starting this lab, you must understand the concepts covered in the following resources:</p>
+<ul>
+<li>Anatomy of the Linux Kernel: <a href="https://perma.cc/77GH-6N7R">developer.ibm.com/technologies/linux/articles/l-linux-kernel/</a></li>
+<li><em>LDD</em> Ch. 2: “Building &amp; Running Modules”: <a href="https://static.lwn.net/images/pdf/LDD3/ch02.pdf">static.lwn.net/images/pdf/LDD3/ch02.pdf</a>
+<ul>
+<li><em>Please pay attention to general concepts and not specific code syntax as there are changes in Linux 4.19</em><sup class="footnote-ref"><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#fn1" id="fnref1">1</a></sup></li>
+</ul>
+</li>
+<li>Review Lab 1 concepts (e.g., what items do you need to start QEMU?)</li>
+</ul>
+<p>Once you feel prepared, go to <strong>GradeScope</strong> and complete the pre-lab mini quiz.</p>
+<h2 id="introduction">Introduction</h2>
+<p>In this lab, you will write a Linux kernel module to control a software (kernel) timer for Linux 4.19 running on an ARMv7 processor.</p>
+<p>This assignment involves writing and debugging a <strong>standalone kernel module</strong> and a <strong>userspace program</strong> to communicate with the kernel module. <code>$EC535/examples/ldd</code> contains some example code for an older version of Linux (kernel 2.6) that you may find useful. There’s also a GitHub repo containing community-maintained (read: correctness not guaranteed) updated versions of the example codes: <a href="https://github.com/abyrne55/myldd3tutorials">github.com/abyrne55/myldd3tutorials</a>.</p>
+<p>You’ll start by writing two simple modules: the <em>HelloWorld</em> module will introduce you to the general structure of kernel modules, and the <em>Nibbler</em> module will show you the basics of interacting with userspace.</p>
+<p>Although this lab builds on the skills you developed in Lab 1, it does not depend on the Linux distribution you produced in Lab 1. Instead, we’ll be providing you with a “stock” kernel and rootfs that has been confirmed to work for this lab.</p>
+<h3 id="additional-helpful-resources">Additional Helpful Resources</h3>
+<ul>
+<li>Linux Kernel Labs
+<ul>
+<li>Modules: <a href="https://perma.cc/5YFF-QT9T">linux-kernel-labs.github.io/refs/heads/master/labs/kernel_modules.html</a></li>
+<li>Timers: <a href="https://perma.cc/2FE5-44J3">linux-kernel-labs.github.io/refs/heads/master/labs/deferred_work.html</a></li>
+</ul>
+</li>
+<li>Linux Kernel Module Programming Guide, Ch 1-3: <a href="https://linux.die.net/lkmpg/index.html">linux.die.net/lkmpg/index.html</a>
+<ul>
+<li><em>(older resource, but most concepts still apply)</em></li>
+</ul>
+</li>
+</ul>
+<h2 id="specifications">Specifications</h2>
+<h3 id="kernel-module">Kernel Module</h3>
+<p>Your kernel module should be able to create kernel (software) timers and print a specified message on the console when the timer expires. Chapter 7 of the LDD3 book (<a href="https://lwn.net/Kernel/LDD3/">lwn.net/Kernel/LDD3/</a>) has a section describing kernel timers starting on page 196<sup class="footnote-ref"><a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#fn1" id="fnref1:1">1</a></sup>. Note that a kernel timer is different from a hardware timer.</p>
+<h3 id="userspace-program">Userspace Program</h3>
+<p>Develop a userspace program in C called <code>ktimer</code> that can communicate with your kernel module. Your implementation of <code>ktimer</code> should capable of registering at least one timer such that a user-provided message will be printed to the <code>tty</code> after a user-provided expiration time. Note that your <code>ktimer</code> program may only <em>configure</em> your timer(s); the actual operation of your kernel timer(s) and printing of timer expiration messages <strong>must</strong> be handled by your kernel module in order to receive a grade.</p>
+<p>Your implementation of <code>ktimer</code> must support the following command line arguments and match the described behaviors exactly:</p>
+<ul>
+<li><strong><code>-l</code></strong>: List to <code>stdout</code> the expiration time <code>[SEC]</code> (offset in seconds from the current time) of the <em>currently registered</em> timer(s) and the message <code>[MSG]</code> that would be printed upon timer expiration, one line per timer. <mark>Each line of the output should be <code>&lt;MSG&gt; &lt;SEC&gt;</code>.</mark> See video below for an example.<br>
+If there are no timers pending, your program should print nothing and exit.</li>
+<li><strong><code>-s [SEC] [MSG]</code></strong>: Register a new timer that, after <code>[SEC]</code> seconds, will print the message <code>[MSG]</code>. <mark>Do not print anything if registration is successful.</mark><br>
+If an active (i.e., not yet expired) timer with the same message already exists, then reset that timer’s remaining time to <code>[SEC]</code> and <mark>print out the following: <code>The timer &lt;MSG&gt; was updated!</code>.</mark><br>
+If your kernel module does not support more than the current number of active timers, and if <code>[MSG]</code> does not match any active timers’ messages, then your program should not change any existing timers and instead print the following error message and exit: <mark><code>[COUNT] timer(s) already exist(s)!</code></mark>. <code>[COUNT]</code> is the maximum supported number of timers set by <code>-m</code> option. <mark>You should print exactly this message even when <code>[COUNT]=1</code>. (Note that this message is slightly different than the message in the video)</mark></li>
+<li><strong><code>-m [COUNT]</code></strong>: (<em>only required if your implementation supports multiple timers</em>) Change the number of active timers supported by your kernel module to <code>[COUNT]</code>. <mark>Do not print anything if no error occurs.</mark> This should default to <code>1</code> upon module load.<br>
+<mark><em>If multiple timers are not supported</em>, your program should print the following error message: <code>Error: multiple timers not supported.</code></mark></li>
+</ul>
+<p>You may assume that: <code>[SEC]</code> will be an integer between 1 and 86,400 (inclusive); <code>[COUNT]</code> will be an integer between 1 and 5 (inclusive); and <code>[MSG]</code> will be a string no longer than 128 characters. The strings with which we will test your submission contain only <a href="https://en.wikipedia.org/wiki/Alphanumeric">alphanumerics</a>, spaces, tabs, and/or the following special characters: <code>!@#$%^&amp;*(),./\:</code>.</p>
+<h2 id="getting-started">Getting Started</h2>
+<h3 id="setting-up-your-workspace">Setting up your workspace</h3>
+<p>Set up your workspace (as in Lab 1, feel free to place this wherever you’d like) using the following commands.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">source</span> /ad/eng/courses/ec/ec535/bashrc_ec535
+<span class="token function">export</span> WORKSPACE<span class="token operator">=</span><span class="token variable">$HOME</span>/EC535/lab2 <span class="token comment"># Feel free to edit as you see fit</span>
+<span class="token function">mkdir</span> -p <span class="token variable">$WORKSPACE</span>
+</code></pre>
+<p>As mentioned in the introduction, we provide you with a stock system for use in this lab. Extract a copy of the stock rootfs to your workspace, then create symbolic links to the stock zImage and Linux kernel source directory. You won’t need to edit the kernel source or recreate the <code>zImage</code> in this lab.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">tar</span> -xzf <span class="token variable">$EC535</span>/bbb/stock/stock-rootfs.tar.gz
+<span class="token function">ln</span> -s <span class="token variable">$EC535</span>/bbb/stock/stock-zImage ./
+<span class="token function">ln</span> -s <span class="token variable">$EC535</span>/bbb/stock/stock-linux-4.19.82-ti-rt-r33 ./
+<span class="token function">chmod</span> +x rebuild-rootfs.sh
+</code></pre>
+<p><em>Note: As you learned in Lab 1, changes made to your <code>rootfs</code> directory are not automatically copied into your <code>rootfs.img</code>. For your convenience, <code>stock-rootfs.tar.gz</code> contains a script called <code>rebuild-rootfs.sh</code> that automates the process of creating a <code>rootfs.img</code> explained in Lab 1.</em></p>
+<p>Confirm everything was copied correctly by booting the stock image in QEMU.</p>
+<pre class=" language-bash"><code class="prism  language-bash">qemu-system-arm -M virt -m 512 -kernel stock-zImage -nographic \
+  -drive file<span class="token operator">=</span>rootfs.img,if<span class="token operator">=</span>none,format<span class="token operator">=</span>raw,id<span class="token operator">=</span>rfs \
+  -device virtio-blk-device,drive<span class="token operator">=</span>rfs \
+  -append <span class="token string">"earlyprintk=serial root=/dev/vda"</span>
+</code></pre>
+<p>Log in as <code>root</code> with no password as usual. You should be greeted with a prompt that looks like <code>ec535-stock:~#</code>. Run <code>cat ~/welcome.txt</code> and read the output. When finished, run <code>poweroff</code> or press <code>Ctrl-a</code> and then <code>x</code> to quit QEMU.</p>
+<h3 id="writing-your-kernel-module-and-userspace-program">Writing your kernel module and userspace program</h3>
+<p>For actually writing your kernel module and userspace program, you’ll need to refer to provided resources and specifications above and do some research of your own. We recommend creating the directories <code>km</code> and <code>ul</code> within your <code>$WORKSPACE</code> to contain the source for your kernel module and userspace program, respectively. Your kernel source code file should be named <code>mytimer.c</code> and your userspace program source code file should be named <code>ktimer.c</code>. Note that you must include separate <code>Makefile</code>s for both components in your submission.</p>
+<p>We’ll be looking at your source code for comments that demonstrate your understanding of the assignment. We strongly recommend cleaning up your code using an autoformatter like <code>astyle</code>  (included in your <code>PATH</code>) before submitting.</p>
+<h3 id="testing-your-kernel-module">Testing your kernel module</h3>
+<p>Once you’ve compiled your kernel module and userspace program, you’ll have to copy both into your rootfs in order to test it. Assuming your compiled kernel module exists in <code>$WORKSPACE/km/mytimer.ko</code> and your compiled userspace program exists in <code>$WORKSPACE/ul/ktimer</code>, run the following:</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">cd</span> <span class="token variable">$WORKSPACE</span>
+<span class="token function">cp</span> km/mytimer.ko ul/ktimer rootfs/root/
+./rebuild-rootfs.sh
+</code></pre>
+<p>Once your rootfs is rebuilt, boot your system in QEMU using the command at the end of <em>Setting up your workspace</em>. After logging in, create the character device file that you’ll use to interface with your kernel module using <code>mknod</code>.</p>
+<pre class=" language-bash"><code class="prism  language-bash"><span class="token function">mknod</span> /dev/mytimer c 61 0
+</code></pre>
+<p><em>Note: This creates a device file with major number 61 and minor number 0. Make sure you specify these same numbers in the source of your kernel module.</em></p>
+<p>Load your kernel module using <code>insmod</code>. You’ll most likely get a warning similar to <code>loading out-of-tree module taints kernel</code>. This is normal behavior.</p>
+<pre class=" language-bash"><code class="prism  language-bash">insmod /root/mytimer.ko
+</code></pre>
+<p>Once your module loads successfully, test it using your <code>ktimer</code> program. See the ASCIIcast below to see what working output looks like.</p>
+
+
+<a href="https://asciinema.org/a/y2qUI5FWU4JYvvO8tQd3LD0xv?theme=tango" target="_blank"><img src="./y2qUI5FWU4JYvvO8tQd3LD0xv.svg"></a>
+
+<p><em>If you’re having trouble viewing the ASCIIcast above, try going to: <a href="https://asciinema.org/a/y2qUI5FWU4JYvvO8tQd3LD0xv">asciinema.org/a/y2qUI5FWU4JYvvO8tQd3LD0xv</a></em></p>
+<h2 id="requirements">Requirements</h2>
+<p>Your submission must meet the following requirements:</p>
+<ol>
+<li>Your kernel module must be loadable using the instructions in <em>Testing your kernel module</em> and unloadable using <code>rmmod mytimer</code>. <strong>Loading, using, and unloading your module should not produce any errors</strong> (including kernel “oops” and “panics”).</li>
+<li>Your userspace program should only communicate to the kernel module and print relevant information to stdout. In other words, if you were to <code>kill</code> and <code>rm</code> your userspace program after setting a timer with it, that timer should still fire at the correct expiration time with the correct message.</li>
+<li>Upon timer expiration, the user-provided message should be printed on the console <strong>by the kernel module</strong>. <em><strong>This is the only message that the kernel module should print</strong></em>. Debugging outputs should be removed before you submit your assignment.</li>
+<li>Your kernel module and your device node should be named <code>mytimer</code>. You should use major number 61 and minor number 0 for your device node.</li>
+</ol>
+<h3 id="grading">Grading</h3>
+<ul>
+<li>Makefile: 10pts</li>
+<li>Kernel module with single timer support: 40 pts</li>
+<li>Userspace program:
+<ul>
+<li>Updating timers successfully: 10 pts</li>
+<li>List option (-l): 10 pts</li>
+<li>“Timer already running” message (see specifications above): 10 pts</li>
+</ul>
+</li>
+<li>Supporting multiple timers: 20</li>
+</ul>
+<h3 id="submission">Submission</h3>
+<p><em>Note: When copying items into your submission folder, take care to copy actual files and NOT symbolic links (the <code>file</code> command can help you check this).</em></p>
+<ol>
+<li>Create a folder named <code>USERNAME_lab2</code>, replacing <code>USERNAME</code> with your BU Kerberos username.</li>
+<li>Within that folder, create a blank file <code>README</code> and two folders named <code>km</code> and <code>ul</code>.</li>
+<li>Within <code>km</code>, place your module source code (<code>mytimer.c</code>) and corresponding <code>Makefile</code>.</li>
+<li>Within <code>ul</code>, place your userland program source code (<code>ktimer.c</code>) and corresponding <code>Makefile</code>.</li>
+<li>In <code>README</code>, write your full name, BU email, and a list of 3-5 links/citations for the resources you found most helpful when working on this assignment. If you have made any reasonable assumptations, please also note here.</li>
+</ol>
+<p>Your final submission folder’s filetree (try running <code>tree</code>) should look like this:</p>
+<pre><code>USERNAME_lab2/
+├── km
+│   ├── Makefile
+│   └── mytimer.c
+├── README
+└── ul
+    ├── ktimer.c
+    └── Makefile
+</code></pre>
+<p>Create a GZIP’d TAR archive (learn how to use <code>tar</code> and <code>gzip</code>) named <code>USERNAME_lab2.tar.gz</code> containing <em>only</em> the <code>USERNAME_lab2</code> folder. Submit that single archive via Gradescope (detailed instructions TBA). You may submit multiple times; we will only grade your latest submission.</p>
+<p><strong>Failure to adhere to these submission guidelines <em>will</em> result in deduction of points from your lab grade.</strong></p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>While it was once <em>the</em> reference for those looking to get started writing Linux kernel modules, <em>Linux Device Drivers</em> hasn’t been updated since 2005, and unfortunately we’ve yet to find a good replacement. While most core concepts still apply to today’s kernels, some information has fallen out of date. Specifically with regards to the Linux kernel timer API, we recommend you read this LWN article about changes that took effect in Linux kernel 4.15: <a href="https://lwn.net/Articles/735887/">lwn.net/Articles/735887/</a> <a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#fnref1" class="footnote-backref">↩︎</a> <a href="https://learn.bu.edu/courses/1/25fallengec535_a1/content/_16626094_1/Lab2.html#fnref1:1" class="footnote-backref">↩︎</a></p>
+</li>
+</ol>
+</section>
+
+    </div>
+  </div>
+
+
+
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+      div.grammarly-desktop-integration {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select:none;
+        user-select:none;
+      }
+
+      div.grammarly-desktop-integration:before {
+        content: attr(data-content);
+      }
+    </style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;full&quot;,&quot;isActive&quot;:true,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>
