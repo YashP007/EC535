@@ -1,18 +1,24 @@
-# Prerequisites
-*.d
+# -----------------------------
+# OS/editor cruft
+# -----------------------------
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
 
-# Object files
+# -----------------------------
+# Compiler / build artifacts
+# -----------------------------
 *.o
-*.ko
 *.obj
 *.elf
-
-# Linker output
-*.ilk
 *.map
-*.exp
+*.lst
+*.tmp
+*.log
 
-# Precompiled Headers
+# Your existing patterns (kept)
 *.gch
 *.pch
 
@@ -22,7 +28,7 @@
 *.la
 *.lo
 
-# Shared objects (inc. Windows DLLs)
+# Shared objects
 *.dll
 *.so
 *.so.*
@@ -41,8 +47,11 @@
 *.su
 *.idb
 *.pdb
+*.dwo
 
-# Kernel Module Compile Results
+# -----------------------------
+# Kernel module build byproducts
+# -----------------------------
 *.mod*
 *.cmd
 .tmp_versions/
@@ -51,10 +60,60 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# debug information files
-*.dwo
-
-# Config files and setup fils local to the machine vscode is being run on. 
+# -----------------------------
+# IDE / editor settings
+# -----------------------------
 .vscode/
 .vscode/launch.json
-.vscode/tasts.json
+.vscode/tasks.json
+
+# -----------------------------
+# Archive / image files (large)
+# -----------------------------
+*.img
+*.iso
+*.tar
+*.tar.*
+*.gz
+*.bz2
+*.xz
+*.zip
+*.7z
+
+# -----------------------------
+# EC535 lab-specific heavies
+# (don’t version vendor trees or built images)
+# -----------------------------
+# Kernel & BusyBox source/extracted trees
+Lab*/linux-*/
+Lab*/busybox-*/
+EC535/*/linux-*/
+EC535/*/busybox-*/
+
+# “stock” copies provided by the course
+Lab*/stock-*/
+EC535/*/stock-*/
+
+# Rootfs build outputs
+Lab*/rootfs/
+EC535/*/rootfs/
+
+# Disk images and kernel images
+Lab*/rootfs.img
+Lab*/zImage
+EC535/*/rootfs.img
+EC535/*/zImage
+
+# Large one-off submissions / bundles
+Lab*/pately_*.tar.gz
+EC535/*/pately_*.tar.gz
+
+# -----------------------------
+# Keep useful small scripts tracked
+# (don’t ignore .sh; list here just for clarity)
+# -----------------------------
+#! DO NOT add *.sh to ignores
+# e.g., keep these:
+#   Lab*/boot_disk_img.sh
+#   Lab*/rebuild_disk_img.sh
+#   EC535/*/rebuild-rootfs.sh
