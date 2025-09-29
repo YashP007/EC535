@@ -43,8 +43,8 @@ if [ "$WORKSPACE/km/mytimer.c" ]; then
     echo "Copying compiled files into rootfs..."
     mkdir -p $WORKSPACE/rootfs/usr/ul/
     mkdir -p $WORKSPACE/rootfs/usr/km/
-    cp $WORKSPACE/ul/ktimer.ko $WORKSPACE/rootfs/usr/ul/ # make sure the usr/ul directory exists in rootfs/create it if needed
-    cp $WORKSPACE/km/mytimer.ko $WORKSPACE/rootfs/usr/km/ # make sure the usr/km directory exists in rootfs/create it if needed
+    cp $WORKSPACE/ul/ $WORKSPACE/rootfs/usr/ul/ 
+    cp $WORKSPACE/km/ $WORKSPACE/rootfs/usr/km/ 
 else
     echo "Error: One or more required files are missing."
     echo "Please ensure the following files exist in your WORKSPACE directory:"
