@@ -17,15 +17,13 @@ if [ "$(ls -A /tmp/$USER-mnt)" ]; then
 fi
 
 # Workspace root; allow override from environment.
-WORKSPACE="${WORKSPACE:-$(pwd)}"
+WORKSPACE="$WORKSPACE"
 
 UL_DIR="$WORKSPACE/ul"
 KM_DIR="$WORKSPACE/km"
 ROOTFS="$WORKSPACE/rootfs"
 DST_UL="$ROOTFS/usr/src/ul"
 DST_KM="$ROOTFS/usr/src/km"
-
-echo "[info] WORKSPACE=$WORKSPACE"
 
 # ---- Sanity checks ----
 need_files=(
@@ -56,16 +54,16 @@ mkdir -p "$DST_UL" "$DST_KM"
 
 # ---- Copy contents ----
 # Copy *all* contents of ul/ (sources, Makefile, .ko, etc.)
-echo "[info] Syncing ul/ -> $DST_UL"
+echo "[info] Copying ul/ -> $DST_UL"
+cp "$UL_DIR/Makefile" "$DST_UL/"
+cp "$UL_DIR/ktimer.c" "$DST_UL/"
 rsync -a --delete "$UL_DIR/" "$DST_UL/"
 
 # Copy only mytimer.c and mytimer.ko from km/
-echo "[info] Copying km/mytimer.c and km/mytimer.ko -> $DST_KM"]
-cp -m 0644 "$KM_DIR/Makefile" "$DST_KM/"
-cp -m 0644 "$KM_DIR/mytimer.c" "$DST_KM/"
-cp -m 0644 "$KM_DIR/mytimer.ko" "$DST_KM/"
-
-echo "[ok] Done."
+echo "[info] Copying km/mytimer.c and km/mytimer.ko -> $DST_KM"
+cp "$KM_DIR/Makefile" "$DST_KM/"
+cp "$KM_DIR/mytimer.c" "$DST_KM/"
+cp "$KM_DIR/mytimer.ko" "$DST_KM/"
 
 # Don't do anything unless a rootfs folder exists in the working dir
 if [ -d "${WORKSPACE}/rootfs" ]; then
