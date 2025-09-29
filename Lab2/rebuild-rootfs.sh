@@ -16,55 +16,6 @@ if [ "$(ls -A /tmp/$USER-mnt)" ]; then
     exit 1
 fi
 
-# Workspace root; allow override from environment.
-WORKSPACE="$WORKSPACE"
-
-UL_DIR="$WORKSPACE/ul"
-KM_DIR="$WORKSPACE/km"
-ROOTFS="$WORKSPACE/rootfs"
-DST_UL="$ROOTFS/usr/src/ul"
-DST_KM="$ROOTFS/usr/src/km"
-
-# ---- Sanity checks ----
-need_files=(
-  "$UL_DIR/ktimer.c"
-  "$UL_DIR/Makefile"
-  "$KM_DIR/mytimer.c"
-  "$KM_DIR/Makefile"
-)
-for f in "${need_files[@]}"; do
-  if [[ ! -f "$f" ]]; then
-    echo "[error] Missing required file: $f" >&2
-  fi
-done
-
-# ---- Build modules ----
-make -C "$KM_DIR"
-
-# Ensure build artifacts exist
-if [[ ! -f "$UL_DIR/ktimer.ko" ]]; then
-  echo "[error] Build failed: $UL_DIR/ktimer.ko not found (did ul/ compile cleanly?)" >&2
-fi
-if [[ ! -f "$KM_DIR/mytimer.ko" ]]; then
-  echo "[error] Build failed: $KM_DIR/mytimer.ko not found (did km/ compile cleanly?)" >&2
-fi
-
-# ---- Create destination dirs ----
-mkdir -p "$DST_UL" "$DST_KM"
-
-# ---- Copy contents ----
-# Copy *all* contents of ul/ (sources, Makefile, .ko, etc.)
-echo "[info] Copying ul/ -> $DST_UL"
-cp "$UL_DIR/Makefile" "$DST_UL/"
-cp "$UL_DIR/ktimer.c" "$DST_UL/"
-rsync -a --delete "$UL_DIR/" "$DST_UL/"
-
-# Copy only mytimer.c and mytimer.ko from km/
-echo "[info] Copying km/mytimer.c and km/mytimer.ko -> $DST_KM"
-cp "$KM_DIR/Makefile" "$DST_KM/"
-cp "$KM_DIR/mytimer.c" "$DST_KM/"
-cp "$KM_DIR/mytimer.ko" "$DST_KM/"
-
 # Don't do anything unless a rootfs folder exists in the working dir
 if [ -d "${WORKSPACE}/rootfs" ]; then
     # Delete rootfs.img if it exists
