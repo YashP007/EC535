@@ -16,6 +16,42 @@ if [ "$(ls -A /tmp/$USER-mnt)" ]; then
     exit 1
 fi
 
+// Check for the existance of of the following files, run Makefile, and then copy into rootfs/usr/src/km and rootfs/usr/src/ul
+// Files to check for: ul/ktimer.c, ul/Makefile, km/mytimer.c, km/Makefile
+if [ "$WORKSPACE/ul/ktimer.c" ] && [ "$WORKSPACE/ul/Makefile" ] && [ "$WORKSPACE/km/Makefile" ] && [ "$WORKSPACE/km/mytimer.c" ]; then
+    echo "All required files exist. Running Makefile..."
+    make -C $WORKSPACE/ul
+    make -C $WORKSPACE/km
+
+    echo "Copying compiled files into rootfs..."
+    cp $WORKSPACE/ul/ktimer.ko $WORKSPACE/rootfs/usr/src/ul/
+    cp $WORKSPACE/km/mytimer.ko $WORKSPACE/rootfs/usr/src/km/
+else
+    echo "Error: One or more required files are missing."
+    echo "Please ensure the following files exist in your WORKSPACE directory:"
+    echo "- ul/ktimer.c"
+    echo "- ul/Makefile"
+    echo "- km/mytimer.c"
+    echo "- km/Makefile"
+    exit 1
+fi
+if [ "$WORKSPACE/km/mytimer.c" ]; then
+    echo "All required files exist. Running Makefile..."
+    make -C $WORKSPACE/ul
+    make -C $WORKSPACE/km
+
+    echo "Copying compiled files into rootfs..."
+    cp $WORKSPACE/ul/ktimer.ko $WORKSPACE/rootfs/usr/src/ul/
+    cp $WORKSPACE/km/mytimer.ko $WORKSPACE/rootfs/usr/src/km/
+else
+    echo "Error: One or more required files are missing."
+    echo "Please ensure the following files exist in your WORKSPACE directory:"
+    echo "- ul/ktimer.c"
+    echo "- ul/Makefile"
+    echo "- km/mytimer.c"
+    echo "- km/Makefile"
+    exit 1
+fi
 
 # Don't do anything unless a rootfs folder exists in the working dir
 if [ -d "${WORKSPACE}/rootfs" ]; then
