@@ -41,10 +41,6 @@ for f in "${need_files[@]}"; do
 done
 
 # ---- Build modules ----
-echo "[info] Building ul/"
-make -C "$UL_DIR"
-
-echo "[info] Building km/"
 make -C "$KM_DIR"
 
 # Ensure build artifacts exist
@@ -64,9 +60,10 @@ echo "[info] Syncing ul/ -> $DST_UL"
 rsync -a --delete "$UL_DIR/" "$DST_UL/"
 
 # Copy only mytimer.c and mytimer.ko from km/
-echo "[info] Installing km/mytimer.c and km/mytimer.ko -> $DST_KM"
-install -m 0644 "$KM_DIR/mytimer.c" "$DST_KM/"
-install -m 0644 "$KM_DIR/mytimer.ko" "$DST_KM/"
+echo "[info] Copying km/mytimer.c and km/mytimer.ko -> $DST_KM"]
+cp -m 0644 "$KM_DIR/Makefile" "$DST_KM/"
+cp -m 0644 "$KM_DIR/mytimer.c" "$DST_KM/"
+cp -m 0644 "$KM_DIR/mytimer.ko" "$DST_KM/"
 
 echo "[ok] Done."
 
