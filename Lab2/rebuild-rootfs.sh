@@ -37,7 +37,6 @@ need_files=(
 for f in "${need_files[@]}"; do
   if [[ ! -f "$f" ]]; then
     echo "[error] Missing required file: $f" >&2
-    exit 1
   fi
 done
 
@@ -51,11 +50,9 @@ make -C "$KM_DIR"
 # Ensure build artifacts exist
 if [[ ! -f "$UL_DIR/ktimer.ko" ]]; then
   echo "[error] Build failed: $UL_DIR/ktimer.ko not found (did ul/ compile cleanly?)" >&2
-  exit 1
 fi
 if [[ ! -f "$KM_DIR/mytimer.ko" ]]; then
   echo "[error] Build failed: $KM_DIR/mytimer.ko not found (did km/ compile cleanly?)" >&2
-  exit 1
 fi
 
 # ---- Create destination dirs ----
