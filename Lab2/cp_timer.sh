@@ -3,8 +3,8 @@
 UL_DIR="$WORKSPACE/ul"
 KM_DIR="$WORKSPACE/km"
 ROOTFS="$WORKSPACE/rootfs"
-DST_UL="$ROOTFS/usr/src/ul"
-DST_KM="$ROOTFS/usr/src/km"
+DST_UL="$ROOTFS/usr/ul"
+DST_KM="$ROOTFS/usr/km"
 
 # ---- Build modules ----
 make -C "$KM_DIR"
