@@ -37,7 +37,7 @@ else
 fi
 if [ "$WORKSPACE/km/mytimer.c" ]; then
     echo "All required files exist. Running Makefile..."
-    make -C $WORKSPACE/ul
+    #make -C $WORKSPACE/ul
     make -C $WORKSPACE/km
 
     echo "Copying compiled files into rootfs..."
