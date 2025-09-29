@@ -7,6 +7,7 @@ DST_UL="$ROOTFS/usr/ul"
 DST_KM="$ROOTFS/usr/km"
 
 # ---- Build modules ----
+make -C "$UL_DIR"
 make -C "$KM_DIR"
 
 # ---- Create destination dirs ----
@@ -17,6 +18,7 @@ mkdir -p "$DST_UL" "$DST_KM"
 echo "[info] Copying ul/ -> $DST_UL"
 cp "$UL_DIR/Makefile" "$DST_UL/"
 cp "$UL_DIR/ktimer.c" "$DST_UL/"
+cp "$UL_DIR/ktimer" "$DST_UL/"
 
 # Copy only mytimer.c and mytimer.ko from km/
 echo "[info] Copying km/mytimer.c and km/mytimer.ko -> $DST_KM"
