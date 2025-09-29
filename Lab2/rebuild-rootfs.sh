@@ -16,44 +16,62 @@ if [ "$(ls -A /tmp/$USER-mnt)" ]; then
     exit 1
 fi
 
-// Check for the existance of of the following files, run Makefile, and then copy into rootfs/usr/src/km and rootfs/usr/src/ul
-// Files to check for: ul/ktimer.c, ul/Makefile, km/mytimer.c, km/Makefile
-if [ "$WORKSPACE/ul/ktimer.c" ] && [ "$WORKSPACE/ul/Makefile" ] && [ "$WORKSPACE/km/Makefile" ] && [ "$WORKSPACE/km/mytimer.c" ]; then
-    echo "All required files exist. Running Makefile..."
-    make -C $WORKSPACE/ul
-    make -C $WORKSPACE/km
+# Workspace root; allow override from environment.
+WORKSPACE="${WORKSPACE:-$(pwd)}"
 
-    echo "Copying compiled files into rootfs..."
-    cp $WORKSPACE/ul/ktimer.ko $WORKSPACE/rootfs/usr/src/ul/
-    cp $WORKSPACE/km/mytimer.ko $WORKSPACE/rootfs/usr/src/km/
-else
-    echo "Error: One or more required files are missing."
-    echo "Please ensure the following files exist in your WORKSPACE directory:"
-    echo "- ul/ktimer.c"
-    echo "- ul/Makefile"
-    echo "- km/mytimer.c"
-    echo "- km/Makefile"
-    exit 1
-fi
-if [ "$WORKSPACE/km/mytimer.c" ]; then
-    echo "All required files exist. Running Makefile..."
-    #make -C $WORKSPACE/ul
-    make -C $WORKSPACE/km
+UL_DIR="$WORKSPACE/ul"
+KM_DIR="$WORKSPACE/km"
+ROOTFS="$WORKSPACE/rootfs"
+DST_UL="$ROOTFS/usr/src/ul"
+DST_KM="$ROOTFS/usr/src/km"
 
-    echo "Copying compiled files into rootfs..."
-    mkdir -p $WORKSPACE/rootfs/usr/ul/
-    mkdir -p $WORKSPACE/rootfs/usr/km/
-    cp $WORKSPACE/ul/ $WORKSPACE/rootfs/usr/ul/ 
-    cp $WORKSPACE/km/ $WORKSPACE/rootfs/usr/km/ 
-else
-    echo "Error: One or more required files are missing."
-    echo "Please ensure the following files exist in your WORKSPACE directory:"
-    echo "- ul/ktimer.c"
-    echo "- ul/Makefile"
-    echo "- km/mytimer.c"
-    echo "- km/Makefile"
+echo "[info] WORKSPACE=$WORKSPACE"
+
+# ---- Sanity checks ----
+need_files=(
+  "$UL_DIR/ktimer.c"
+  "$UL_DIR/Makefile"
+  "$KM_DIR/mytimer.c"
+  "$KM_DIR/Makefile"
+)
+for f in "${need_files[@]}"; do
+  if [[ ! -f "$f" ]]; then
+    echo "[error] Missing required file: $f" >&2
     exit 1
+  fi
+done
+
+# ---- Build modules ----
+echo "[info] Building ul/"
+make -C "$UL_DIR"
+
+echo "[info] Building km/"
+make -C "$KM_DIR"
+
+# Ensure build artifacts exist
+if [[ ! -f "$UL_DIR/ktimer.ko" ]]; then
+  echo "[error] Build failed: $UL_DIR/ktimer.ko not found (did ul/ compile cleanly?)" >&2
+  exit 1
 fi
+if [[ ! -f "$KM_DIR/mytimer.ko" ]]; then
+  echo "[error] Build failed: $KM_DIR/mytimer.ko not found (did km/ compile cleanly?)" >&2
+  exit 1
+fi
+
+# ---- Create destination dirs ----
+mkdir -p "$DST_UL" "$DST_KM"
+
+# ---- Copy contents ----
+# Copy *all* contents of ul/ (sources, Makefile, .ko, etc.)
+echo "[info] Syncing ul/ -> $DST_UL"
+rsync -a --delete "$UL_DIR/" "$DST_UL/"
+
+# Copy only mytimer.c and mytimer.ko from km/
+echo "[info] Installing km/mytimer.c and km/mytimer.ko -> $DST_KM"
+install -m 0644 "$KM_DIR/mytimer.c" "$DST_KM/"
+install -m 0644 "$KM_DIR/mytimer.ko" "$DST_KM/"
+
+echo "[ok] Done."
 
 # Don't do anything unless a rootfs folder exists in the working dir
 if [ -d "${WORKSPACE}/rootfs" ]; then
