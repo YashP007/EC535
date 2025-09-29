@@ -3,7 +3,7 @@ CROSS ?= arm-linux-gnueabihf-
 CC := $(CROSS)gcc
 CFLAGS := -O2 -Wall -Wextra
 # Optional: static link so it runs even on a minimal rootfs
-# LDFLAGS := -static
+LDFLAGS := -static
 
 all: ktimer
 
