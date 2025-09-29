@@ -1,16 +1,14 @@
-# ul/Makefile
-ifneq ($(KERNELRELEASE),)
-	obj-m := ktimer.o
-else
-	KERNELDIR := $(EC535)/bbb/stock/stock-linux-4.19.82-ti-rt-r33
-	PWD := $(shell pwd)
-	ARCH := arm
-	CROSS := arm-linux-gnueabihf-
+# ul/Makefile — build a user-space ARM binary (not a kernel module)
+CROSS ?= arm-linux-gnueabihf-
+CC := $(CROSS)gcc
+CFLAGS := -O2 -Wall -Wextra
+# Optional: static link so it runs even on a minimal rootfs
+# LDFLAGS := -static
 
-default:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS) modules
+all: ktimer
+
+ktimer: ktimer.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 clean:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) ARCH=$(ARCH) clean
-
-endif
+	rm -f ktimer
