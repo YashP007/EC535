@@ -6,24 +6,11 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #define DEVICE_PATH "/dev/mytimer"
 #define MAX_MSG_LEN 128
 #define MAX_BUFFER_SIZE 256
-
-// Multiple timer support struct implementation:
-#define MAX_TIMERS 5  // Support up to 5 timers
-
-struct timer_entry {
-    struct timer_list timer;
-    char msg[MAX_MSG + 1];
-    bool active;
-    unsigned long expires_at;
-    int id;
-};
-
-static struct timer_entry timers[MAX_TIMERS];
-static int max_timer_count = 1;  // Default to 1, changeable via -m
 
 /**
  * Print usage information
@@ -80,15 +67,10 @@ int set_timer(int seconds, const char *message) {
         return 1;
     }
 
-    int fd = open(DEVICE_PATH, O_WRONLY);
-    if (fd < 0) {
-        perror("Failed to open device");
-        return 1;
-    }
-
     // First, check if a timer with this message already exists
-    close(fd);
-    fd = open(DEVICE_PATH, O_RDONLY);
+    int fd = open(DEVICE_PATH, O_RDONLY);
+    bool timer_updated = false;
+    
     if (fd >= 0) {
         char buffer[MAX_BUFFER_SIZE];
         ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
@@ -96,19 +78,20 @@ int set_timer(int seconds, const char *message) {
         if (bytes_read > 0) {
             buffer[bytes_read] = '\0';
             
-            // Parse the current timer info: "<MSG> <SEC>"
-            char *space_pos = strrchr(buffer, ' ');
-            if (space_pos) {
-                *space_pos = '\0';  // Null-terminate at the last space
-                
-                // Remove trailing newline from message part
-                char *newline = strchr(buffer, '\n');
-                if (newline) *newline = '\0';
-                
-                // Check if messages match
-                if (strcmp(buffer, message) == 0) {
-                    printf("The timer %s was updated!\n", message);
+            // Parse each line to find matching message
+            char *line = strtok(buffer, "\n");
+            while (line) {
+                char *space_pos = strrchr(line, ' ');
+                if (space_pos) {
+                    *space_pos = '\0';  // Null-terminate at the last space
+                    
+                    // Check if messages match
+                    if (strcmp(line, message) == 0) {
+                        timer_updated = true;
+                        break;
+                    }
                 }
+                line = strtok(NULL, "\n");
             }
         }
         close(fd);
@@ -126,17 +109,47 @@ int set_timer(int seconds, const char *message) {
     
     ssize_t bytes_written = write(fd, command, cmd_len);
     if (bytes_written < 0) {
-        perror("Failed to write to device");
-        close(fd);
+        if (errno == ENOSPC) {
+            // Timer limit reached - need to get actual limit from somewhere
+            // For now, we'll read the current state to count active timers
+            close(fd);
+            fd = open(DEVICE_PATH, O_RDONLY);
+            if (fd >= 0) {
+                char buffer[MAX_BUFFER_SIZE];
+                ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+                int timer_count = 0;
+                if (bytes_read > 0) {
+                    buffer[bytes_read] = '\0';
+                    char *line = strtok(buffer, "\n");
+                    while (line) {
+                        timer_count++;
+                        line = strtok(NULL, "\n");
+                    }
+                }
+                printf("%d timer(s) already exist(s)!\n", timer_count > 0 ? timer_count : 1);
+                close(fd);
+            } else {
+                printf("1 timer(s) already exist(s)!\n");
+            }
+        } else {
+            perror("Failed to write to device");
+            close(fd);
+        }
         return 1;
     }
 
     close(fd);
+    
+    // Print update message if timer was updated
+    if (timer_updated) {
+        printf("The timer %s was updated!\n", message);
+    }
+    
     return 0;
 }
 
 /**
- * Set maximum number of timers (placeholder for multiple timer support)
+ * Set maximum number of timers - sends COUNT command to kernel module
  */
 int set_max_timers(int count) {
     if (count < 1 || count > 5) {
@@ -144,13 +157,25 @@ int set_max_timers(int count) {
         return 1;
     }
 
-    // For single timer implementation, only count=1 is supported
-    if (count > 1) {
-        printf("Error: multiple timers not supported.\n");
+    int fd = open(DEVICE_PATH, O_WRONLY);
+    if (fd < 0) {
+        perror("Failed to open device");
         return 1;
     }
 
-    // If count=1, this is a no-op for single timer implementation
+    char command[MAX_BUFFER_SIZE];
+    // Write the count value into the command string
+    int cmd_len = snprintf(command, sizeof(command), "COUNT %d", count);
+    // command now contains "COUNT <count>"
+    
+    ssize_t bytes_written = write(fd, command, cmd_len);
+    if (bytes_written < 0) {
+        perror("Failed to write to device");
+        close(fd);
+        return 1;
+    }
+
+    close(fd);
     return 0;
 }
 
@@ -163,9 +188,11 @@ int main(int argc, char *argv[]) {
     // Parse command line arguments
     while ((opt = getopt(argc, argv, "ls:m:h")) != -1) {
         switch (opt) {
+            // List timers
             case 'l':
                 l_flag = 1;
                 break;
+            // Set timer
             case 's':
                 s_flag = 1;
                 seconds = atoi(optarg);
@@ -194,10 +221,12 @@ int main(int argc, char *argv[]) {
                     return 1;
                 }
                 break;
+            // Set max timers (ie the number of concurrent timers, controlled by userspace application)
             case 'm':
                 m_flag = 1;
                 max_count = atoi(optarg);
                 break;
+            // Help message printing (documentation)
             case 'h':
                 print_usage(argv[0]);
                 return 0;
@@ -210,6 +239,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    /* Error handling =======================================================*/
     // Check for conflicting options
     int flag_count = l_flag + s_flag + m_flag;
     if (flag_count > 1) {
@@ -224,6 +254,7 @@ int main(int argc, char *argv[]) {
         print_usage(argv[0]);
         return 1;
     }
+    /* =====================================================================*/
 
     int result = 0;
 

@@ -7,6 +7,9 @@
 #include <linux/timer.h>     // struct timer_list, timer_setup, mod_timer
 #include <linux/jiffies.h>   // jiffies, HZ
 #include <linux/string.h>
+#include <linux/spinlock.h>
+#include <linux/list.h>
+#include <linux/slab.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -29,20 +32,37 @@ static const struct file_operations fops = {
     .write   = my_write,
 };
 
-/* ---------- Single-timer state ---------- */
-static struct timer_list my_timer;
-static char  my_msg[MAX_MSG + 1];         // message printed on expiry
-static bool  my_active = false;           // is a timer currently scheduled?
-static unsigned long my_expires_at = 0;   // absolute jiffies when it will fire
+/* ---------- Multiple Timer management ---------- */
+struct mytimer_item {
+    struct timer_list t;
+    char msg[MAX_MSG + 1];
+    bool active;
+    u64 expires_jiffies;
+    struct list_head node;
+};
+
+static LIST_HEAD(timer_list_head);
+static DEFINE_SPINLOCK(timer_lock);
+static int max_timers = 1;  // default, changeable via -m
+static int active_count = 0;
 
 /* ---------- Timer callback ---------- */
 static void mytimer_cb(struct timer_list *t)
 {
-    // Spec: the KERNEL prints the message when the timer expires.
-    printk(KERN_INFO "%s\n", my_msg);
+    struct mytimer_item *it = from_timer(it, t, t);
 
-    my_active = false;
-    my_expires_at = 0;
+    // Print the message from kernel context
+    printk(KERN_INFO "%s\n", it->msg);
+
+    // Mark as inactive and free
+    spin_lock_bh(&timer_lock);
+    if (it->active) {
+        it->active = false;
+        active_count--;
+        list_del(&it->node);
+        kfree(it);
+    }
+    spin_unlock_bh(&timer_lock);
 }
 
 /* ---------- Module lifecycle ---------- */
@@ -50,19 +70,28 @@ static int __init my_init(void)
 {
     int ret = register_chrdev(MYTIMER_MAJOR, DEV_NAME, &fops);
     if (ret < 0) {
-        pr_err("mytimer: failed to register major %d\n", MYTIMER_MAJOR);
+        printk(KERN_ERR "mytimer: failed to register major %d\n", MYTIMER_MAJOR);
         return ret;
     }
-    timer_setup(&my_timer, mytimer_cb, 0);
-    pr_info("mytimer loaded\n");
+    printk(KERN_INFO "mytimer loaded\n");
     return 0;
 }
 
 static void __exit my_exit(void)
 {
-    del_timer_sync(&my_timer);
+    struct mytimer_item *it, *tmp;
+    
+    spin_lock_bh(&timer_lock);
+    list_for_each_entry_safe(it, tmp, &timer_list_head, node) {
+        del_timer_sync(&it->t);
+        list_del(&it->node);
+        kfree(it);
+    }
+    active_count = 0;
+    spin_unlock_bh(&timer_lock);
+    
     unregister_chrdev(MYTIMER_MAJOR, DEV_NAME);
-    pr_info("mytimer unloaded\n");
+    printk(KERN_INFO "mytimer unloaded\n");
 }
 
 module_init(my_init);
@@ -80,50 +109,118 @@ static int my_release(struct inode *i, struct file *f)
 }
 
 /*
- * Read format (single shot):
- *   If a timer is active, return one line: "<MSG> <SEC_REMAIN>\n"
- *   If no timer is active, return nothing (0 bytes) per the lab behavior.
+ * Read format: List all active timers
+ * Each line: "<MSG> <SEC_REMAIN>\n"
+ * If no timers active, return nothing (0 bytes)
  */
-static ssize_t my_read(struct file *f, char __user *ubuf, size_t len, loff_t *ppos)
+static ssize_t my_read(struct file *f, char __user *ubuf, size_t maxlen, loff_t *ppos)
 {
-    char kbuf[256];
-    int n = 0;
+    char *out;
+    size_t n = 0;
+    struct mytimer_item *it;
 
     if (*ppos > 0)
         return 0;  // one-shot read
 
-    if (!my_active) {
-        // No pending timers: print nothing and return 0
-        return 0;
-    } else {
-        unsigned long now = jiffies;
-        unsigned long rem_j = (my_expires_at > now) ? (my_expires_at - now) : 0;
-        // round down to seconds (lab expects an integer SEC offset)
-        unsigned long rem_sec = rem_j / HZ;
-        n = scnprintf(kbuf, sizeof(kbuf), "%s %lu\n", my_msg, rem_sec);
+    out = kmalloc(1024, GFP_KERNEL);
+    if (!out)
+        return -ENOMEM;
+
+    // Snapshot the timer data under lock
+    spin_lock_bh(&timer_lock);
+    list_for_each_entry(it, &timer_list_head, node) {
+        if (!it->active)
+            continue;
+        
+        long sec = (long)((s64)(it->expires_jiffies - get_jiffies_64()) / HZ);
+        if (sec < 0) 
+            sec = 0;
+        
+        n += scnprintf(out + n, 1024 - n, "%s %ld\n", it->msg, sec);
+        if (n >= 1024 - 128)  // leave room for one more entry
+            break;
+    }
+    spin_unlock_bh(&timer_lock);
+
+    // Now do copy_to_user outside the lock
+    if (n == 0) {
+        kfree(out);
+        return 0;  // print nothing if no timers
     }
 
-    if (n > len) n = len;
-    if (copy_to_user(ubuf, kbuf, n))
-        return -EFAULT;
+    if (n > maxlen)
+        n = maxlen;
 
-    *ppos += n;
+    if (copy_to_user(ubuf, out, n)) {
+        kfree(out);
+        return -EFAULT;
+    }
+    
+    *ppos = n;
+    kfree(out);
     return n;
 }
 
 /*
- * Write format (simple parser):
- *   "SET <sec> <msg...>\n"
- *     - schedules a timer <sec> seconds from now that will printk("<msg>")
- *
- * Notes:
- *   - This is the minimal path to get a working timer.
- *   - You’ll extend this to handle "update if same MSG", -m, etc.
+ * Helper function to set or update a timer
+ * Returns: 1 if updated existing, 0 if created new, -ENOMEM if no memory, -ENOSPC if full
+ */
+static int set_or_update_timer(int sec, const char *msg)
+{
+    struct mytimer_item *it;
+    u64 expires = get_jiffies_64() + (u64)sec * HZ;
+
+    spin_lock_bh(&timer_lock);
+
+    // Check if timer with same message already exists
+    list_for_each_entry(it, &timer_list_head, node) {
+        if (it->active && strncmp(it->msg, msg, MAX_MSG) == 0) {
+            // Update existing timer
+            it->expires_jiffies = expires;
+            mod_timer(&it->t, (unsigned long)expires);
+            spin_unlock_bh(&timer_lock);
+            return 1;  // updated
+        }
+    }
+
+    // Check if we have room for a new timer
+    if (active_count >= max_timers) {
+        spin_unlock_bh(&timer_lock);
+        return -ENOSPC;  // full
+    }
+
+    // Create new timer
+    it = kzalloc(sizeof(*it), GFP_KERNEL);
+    if (!it) {
+        spin_unlock_bh(&timer_lock);
+        return -ENOMEM;
+    }
+
+    strncpy(it->msg, msg, MAX_MSG);
+    it->msg[MAX_MSG] = '\0';
+    it->active = true;
+    it->expires_jiffies = expires;
+    
+    timer_setup(&it->t, mytimer_cb, 0);
+    mod_timer(&it->t, (unsigned long)expires);
+    
+    list_add_tail(&it->node, &timer_list_head);
+    active_count++;
+
+    spin_unlock_bh(&timer_lock);
+    return 0;  // created new
+}
+
+/*
+ * Write handler - parse commands:
+ *   "SET <sec> <msg...>"  - set/update timer
+ *   "COUNT <num>"         - set max timer count
  */
 static ssize_t my_write(struct file *f, const char __user *ubuf, size_t len, loff_t *ppos)
 {
     char kbuf[256];
     unsigned long sec = 0;
+    int count = 0;
     char *msg_start;
     int ret;
 
@@ -134,38 +231,48 @@ static ssize_t my_write(struct file *f, const char __user *ubuf, size_t len, lof
         return -EFAULT;
     kbuf[len] = '\0';
 
-    // Simple parser for "SET <sec> <msg...>"
-    if (strncmp(kbuf, "SET ", 4) != 0)
-        return -EINVAL;
-
-    ret = sscanf(kbuf + 4, "%lu", &sec);
-    if (ret != 1)
-        return -EINVAL;
-
-    // Find the message part (after the second space)
-    msg_start = strchr(kbuf + 4, ' ');
-    if (!msg_start)
-        return -EINVAL;
-    msg_start++; // skip the space
-
     // Remove trailing newline if present
-    char *newline = strchr(msg_start, '\n');
+    char *newline = strchr(kbuf, '\n');
     if (newline)
         *newline = '\0';
 
-    // Cancel any existing timer
-    if (my_active) {
-        del_timer(&my_timer);
-        my_active = false;
-    }
+    if (strncmp(kbuf, "SET ", 4) == 0) {
+        // Parse "SET <sec> <msg...>"
+        ret = sscanf(kbuf + 4, "%lu", &sec);
+        if (ret != 1)
+            return -EINVAL;
 
-    // Set up the new timer
-    strncpy(my_msg, msg_start, MAX_MSG);
-    my_msg[MAX_MSG] = '\0';
-    
-    my_expires_at = jiffies + sec * HZ;
-    mod_timer(&my_timer, my_expires_at);
-    my_active = true;
+        // Find the message part (after the second space)
+        msg_start = strchr(kbuf + 4, ' ');
+        if (!msg_start)
+            return -EINVAL;
+        msg_start++; // skip the space
+
+        ret = set_or_update_timer(sec, msg_start);
+        if (ret == 1) {
+            // Timer was updated - this should be handled by userspace
+            // But we need to signal success
+        } else if (ret == -ENOSPC) {
+            // This should be handled by userspace too
+            return -ENOSPC;
+        } else if (ret < 0) {
+            return ret;
+        }
+        // ret == 0: new timer created successfully
+
+    } else if (strncmp(kbuf, "COUNT ", 6) == 0) {
+        // Parse "COUNT <num>"
+        ret = sscanf(kbuf + 6, "%d", &count);
+        if (ret != 1 || count < 1 || count > 5)
+            return -EINVAL;
+
+        spin_lock_bh(&timer_lock);
+        max_timers = count;
+        spin_unlock_bh(&timer_lock);
+
+    } else {
+        return -EINVAL;
+    }
 
     return len;
 }
