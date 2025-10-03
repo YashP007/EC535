@@ -7,6 +7,8 @@ DST_UL="$ROOTFS/root/ul"
 DST_KM="$ROOTFS/root/km"
 
 # ---- Build modules ----
+make -C "$UL_DIR" clean
+make -C "$KM_DIR" clean
 make -C "$UL_DIR"
 make -C "$KM_DIR"
 
