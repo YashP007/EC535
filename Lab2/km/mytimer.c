@@ -65,6 +65,9 @@ static void __exit my_exit(void)
     pr_info("mytimer unloaded\n");
 }
 
+module_init(my_init);
+module_exit(my_exit);
+
 /* ---------- File ops impls ---------- */
 static int my_open(struct inode *i, struct file *f)
 {
@@ -121,7 +124,8 @@ static ssize_t my_write(struct file *f, const char __user *ubuf, size_t len, lof
 {
     char kbuf[256];
     unsigned long sec = 0;
-    int i, mstart = -1;
+    char *msg_start;
+    int ret;
 
     if (len >= sizeof(kbuf))
         len = sizeof(kbuf) - 1;
@@ -130,5 +134,38 @@ static ssize_t my_write(struct file *f, const char __user *ubuf, size_t len, lof
         return -EFAULT;
     kbuf[len] = '\0';
 
-    //
+    // Simple parser for "SET <sec> <msg...>"
+    if (strncmp(kbuf, "SET ", 4) != 0)
+        return -EINVAL;
+
+    ret = sscanf(kbuf + 4, "%lu", &sec);
+    if (ret != 1)
+        return -EINVAL;
+
+    // Find the message part (after the second space)
+    msg_start = strchr(kbuf + 4, ' ');
+    if (!msg_start)
+        return -EINVAL;
+    msg_start++; // skip the space
+
+    // Remove trailing newline if present
+    char *newline = strchr(msg_start, '\n');
+    if (newline)
+        *newline = '\0';
+
+    // Cancel any existing timer
+    if (my_active) {
+        del_timer(&my_timer);
+        my_active = false;
+    }
+
+    // Set up the new timer
+    strncpy(my_msg, msg_start, MAX_MSG);
+    my_msg[MAX_MSG] = '\0';
+    
+    my_expires_at = jiffies + sec * HZ;
+    mod_timer(&my_timer, my_expires_at);
+    my_active = true;
+
+    return len;
 }
