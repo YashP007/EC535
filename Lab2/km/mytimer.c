@@ -131,8 +131,10 @@ static ssize_t my_read(struct file *f, char __user *ubuf, size_t maxlen, loff_t 
     list_for_each_entry(it, &timer_list_head, node) {
         if (!it->active)
             continue;
-        
-        long sec = (long)((s64)(it->expires_jiffies - get_jiffies_64()) / HZ);
+        long ticks = (long)it->t.expires - (long)jiffies;
+        if (ticks < 0)
+            ticks = 0;
+        long sec = ticks / HZ;
         if (sec < 0) 
             sec = 0;
         
