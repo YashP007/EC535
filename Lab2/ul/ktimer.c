@@ -5,10 +5,25 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <stdbool.h>
 
 #define DEVICE_PATH "/dev/mytimer"
 #define MAX_MSG_LEN 128
 #define MAX_BUFFER_SIZE 256
+
+// Multiple timer support struct implementation:
+#define MAX_TIMERS 5  // Support up to 5 timers
+
+struct timer_entry {
+    struct timer_list timer;
+    char msg[MAX_MSG + 1];
+    bool active;
+    unsigned long expires_at;
+    int id;
+};
+
+static struct timer_entry timers[MAX_TIMERS];
+static int max_timer_count = 1;  // Default to 1, changeable via -m
 
 /**
  * Print usage information
